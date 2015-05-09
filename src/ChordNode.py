@@ -5,6 +5,8 @@
 # Date:   May 09 2015
 #
 
+from ChordKey import ChordKey
+
 
 class ChordNode:
     def __init__(self, nodeId, nodeKey, predecessor, sucessor, fingerTable):
