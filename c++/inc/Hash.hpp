@@ -19,6 +19,7 @@ class Hash
 public:
 	Hash(const std::string& input_string);
 	const unsigned char operator[](unsigned int i) const;
+	inline unsigned int size() const { return 20; }
 private:
 	unsigned char m_hash[20];
 };
