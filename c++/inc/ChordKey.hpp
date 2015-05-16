@@ -13,18 +13,29 @@ public:
 	/* Comparisons */
 	int compareTo(const ChordKey& other) const;
 	bool isBetween(const ChordKey& other_1, const ChordKey& other_2) const;
-	inline bool operator< (const ChordKey& other) const;
-	inline bool operator> (const ChordKey& other) const;
-	inline bool operator== (const ChordKey& other) const;
-	inline bool operator<= (const ChordKey& other) const;
-	inline bool operator>= (const ChordKey& other) const;
+	inline bool operator< (const ChordKey& other) const
+	{ return compareTo(other) < 0; }
 
+	inline bool operator> (const ChordKey& other) const
+	{ return compareTo(other) > 0; }
+
+	inline bool operator== (const ChordKey& other) const
+	{ return compareTo(other) == 0; }
+
+	inline bool operator<= (const ChordKey& other) const
+	{ return compareTo(other) <= 0; }
+
+	inline bool operator>= (const ChordKey& other) const
+	{ return compareTo(other) >= 0; }
 	/* Accessors and mutators */
 	inline const std::string& getId() const
 	{ return m_id; }
 
 	inline void setId(const std::string& id)
 	{ m_id = id; }
+
+	inline void setIdHash(const std::string& id)
+	{ m_id = id; m_key = Hash(id); }
 
 	inline const Hash& getKey() const
 	{ return m_key; }

@@ -28,29 +28,3 @@ bool ChordKey::isBetween(const ChordKey& o1, const ChordKey& o2) const
 	return false;
 }
 
-bool ChordKey::operator<(const ChordKey& other) const
-{
-	return compareTo(other) < 0;
-}
-
-bool ChordKey::operator>(const ChordKey& other) const
-{
-	return compareTo(other) > 0;
-}
-
-bool ChordKey::operator==(const ChordKey& other) const
-{
-	return compareTo(other) == 0;
-}
-
-bool ChordKey::operator<=(const ChordKey& other) const
-{
-	return compareTo(other) <= 0;
-}
-
-bool ChordKey::operator>=(const ChordKey& other) const
-{
-	return compareTo(other) >= 0;
-}
-
-
