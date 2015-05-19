@@ -28,3 +28,9 @@ bool ChordKey::isBetween(const ChordKey& o1, const ChordKey& o2) const
 	return false;
 }
 
+std::ostream& operator<<(std::ostream& os, const ChordKey& k)
+{
+	os << k.getKey();
+	return os;
+}
+

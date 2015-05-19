@@ -14,7 +14,7 @@ class ChordNode
 public:
 	ChordNode(const std::string& id);
 
-	const ChordNode* findSuccessor(const std::string& id) const;
+	ChordNode* findSuccessor(const std::string& id) const;
 
 	/**
 	 * \brief Create a new chord ring
@@ -53,8 +53,9 @@ public:
 	inline ChordNode* getSuccesor() { return m_successor; }
 
 protected:
-
 	ChordNode();
+
+	ChordNode* getClosesNode(ChordKey key) const;
 
 private:
 

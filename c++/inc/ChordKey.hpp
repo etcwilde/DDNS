@@ -3,6 +3,7 @@
 
 #include "Hash.hpp"
 #include <string>
+#include <ostream>
 
 class ChordKey
 {
@@ -43,8 +44,11 @@ public:
 	inline void setKey(const Hash& h)
 	{ m_key = h; }
 
+	friend std::ostream& operator<<(std::ostream& os, const ChordKey& k);
+
 private:
 	Hash m_key;
 	std::string m_id;
 };
+
 #endif//CHORDKEY_HPP
