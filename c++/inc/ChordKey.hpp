@@ -46,6 +46,7 @@ public:
 
 	friend std::ostream& operator<<(std::ostream& os, const ChordKey& k);
 
+
 private:
 	Hash m_key;
 	std::string m_id;

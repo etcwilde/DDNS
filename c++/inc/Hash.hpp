@@ -9,6 +9,9 @@
 
 #include <openssl/sha.h>
 
+#define HASH_LENGTH_BITS 160
+#define HASH_LENGTH_BYTES 20
+
 /**
  * Hash
  *
@@ -19,9 +22,9 @@ class Hash
 public:
 	Hash(const std::string& input_string);
 	const unsigned char operator[](unsigned int i) const;
-	inline unsigned int size() const { return 20; }
+	inline unsigned int size() const { return HASH_LENGTH_BYTES; }
 private:
-	unsigned char m_hash[20];
+	unsigned char m_hash[HASH_LENGTH_BYTES];
 };
 
 
