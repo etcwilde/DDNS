@@ -65,9 +65,14 @@ private:
 
 };
 
-/*class RDSocket : public Socket
+class RDSocket : public Socket
 {
 public:
-}; */
+	RDSocket(unsigned int port);
+	RDSocket(std::string host_ip, unsigned int port);
+protected:
+private:
+	virtual void setSocketFd();
+};
 
 #endif//SOCKET_HPP

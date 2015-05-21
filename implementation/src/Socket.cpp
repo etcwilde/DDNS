@@ -1,8 +1,5 @@
 #include "Socket.hpp"
 
-
-
-
 Socket::Socket(unsigned int port) :
 	m_bound(false),
 	m_good(false),
@@ -48,6 +45,7 @@ int Socket::read(std::string& message, std::string& client_address,
 		unsigned short& client_port) const
 {
 	unsigned char buffer[BUFFER_SIZE];
+	memset(buffer, 0, BUFFER_SIZE);
 	unsigned char client_ip_buf[INET_ADDRSTRLEN + 1];
 	struct sockaddr_in client_addr;
 	socklen_t client_add_len = sizeof(client_addr);
@@ -89,10 +87,10 @@ UDPSocket::UDPSocket(std::string host_ip, unsigned int port) :
 
 void UDPSocket::setSocketFd()
 {
-	m_socket_fd = socket(AF_INET , SOCK_DGRAM, 0);
+	m_socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (m_socket_fd < 0)
 	{
-		std::cerr << "Error: Failed to create socket\n";
+		std::cerr << "Error: Failed to create UDP socket\n";
 		m_good = false;
 	}
 	else m_good = true;
@@ -118,3 +116,52 @@ void UDPSocket::setSocketFd()
 	}
 	else m_bound = false;
 }
+
+/* RDS Socket */
+
+RDSocket::RDSocket(unsigned int port) :
+	Socket(port)
+{
+	setSocketFd();
+}
+
+RDSocket::RDSocket(std::string host_ip, unsigned int port) :
+	Socket(host_ip, port)
+{
+	setSocketFd();
+}
+
+void RDSocket::setSocketFd()
+{
+	m_socket_fd = socket(AF_INET, SOCK_SEQPACKET, 0);
+	if (m_socket_fd < 0)
+	{
+		std::cerr << "Failed to create reliable datagram socket\n";
+		m_good = false;
+	}
+	else m_good = true;
+	int socket_opt = 1;
+
+	/*
+	if (setsockopt(m_socket_fd, SOL_SOCKET, SO_REUSEADDR, (char*)&socket_opt, sizeof(socket_opt)) < 0)
+	{
+		m_good = false;
+		std::cerr << "Error: Failed to set socket options\n";
+	} */
+
+	// Bind Socket
+	if (m_good)
+	{
+		int bind_value = bind(m_socket_fd, (struct sockaddr*)&m_address,
+				sizeof(m_address));
+		if (bind_value < 0)
+		{
+			std::cerr << "Error: Failed to bind socket\n";
+			m_bound = false;
+		}
+		else m_bound = true;
+	}
+	else m_bound = false;
+
+}
+
