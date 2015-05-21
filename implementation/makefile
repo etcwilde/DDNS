@@ -72,13 +72,24 @@ TEST_OBJS	= \
 	  $(patsubst $(D_TEST)%.C, $(D_BUILD)%.o, \
 	  $(patsubst $(D_TEST)%.cc, $(D_BUILD)%.o, $(TEST_SRCS)))))
 
-# $(warning( $(SRCS))
-# $(warning( $(OBJS))
-$(warning( $(LIBSS))
-
 .PHONY:	all release debug test clean rebuild docs
 # No optimizations
 all: $(D_BIN)$(EXEC)
+
+server_client: $(client) $(server)
+
+client: CFLAGS += -DCLIENT
+client: $(D_BIN) $(D_BUILD) $(LIBSS) $(OBJS)
+	$(CXX) -o $(D_BIN)$(EXEC)Client $(OBJS) $(LIBS)
+
+server: CFLAGS += -DSERVER
+server: $(D_BIN) $(D_BUILD) $(LIBSS) $(OBJS)
+	$(CXX) -o $(D_BIN)$(EXEC)Server $(OBJS) $(LIBS)
+
+
+
+
+
 
 # Optimizations
 release: CFLAGS += -O3
@@ -154,6 +165,19 @@ $(D_BUILD)%.o : $(D_TEST)%.C
 
 
 
+wipe_main:
+	$(RM) $(D_BUILD)main.o
+
+$(D_BIN)$(EXEC)Server: CFLAGS += -DSERVER
+$(D_BIN)$(EXEC)Server: $(cleanMain) $(D_BIN) $(D_BUILD) $(LIBSS) $(OBJS)
+	$(CXX) -o $(D_BIN)$(EXEC)Server $(OBJS) $(LIBS)
+
+$(D_BIN)$(EXEC)Client: CFLAGS += -DCLIENT
+$(D_BIN)$(EXEC)Client: $(cleanMain)
+$(D_BIN)$(EXEC)Client: $(D_BIN) $(D_BUILD) $(LIBSS) $(OBJS)
+	$(CXX) -o $(D_BIN)$(EXEC)Client $(OBJS) $(LIBS)
+
 # Link Objects
 $(D_BIN)$(EXEC): $(D_BIN) $(D_BUILD) $(LIBSS) $(OBJS)
 	$(CXX) -o $(D_BIN)$(EXEC)  $(OBJS) $(LIBS)
+
