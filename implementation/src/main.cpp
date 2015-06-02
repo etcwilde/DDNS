@@ -2,41 +2,19 @@
 #include <string>
 
 #include "Socket.hpp"
+#include "ChordKey.hpp"
 
 int main()
 {
-	//SCTPSocket my_socket(8080);
-#ifdef CLIENT
-	UDPSocket sock("142.104.68.132", 8081);
-	std::string message;
-	std::string ip_address;
-	ip_address = "142.104.68.132";
-
-	while (std::cin)
-	{
-		std::cout << "Prompt: ";
-		getline(std::cin, message);
-		if (message == "") continue;
-		std::cout << "Sending: " << message << "...\n";
-		sock.write(message, ip_address, 8080);
-	}
-#endif
-
-#ifdef SERVER
-	std::cout << "Server\n";
-	UDPSocket sock("142.104.68.132", 8080);
-	std::string message;
-	std::string client_ip;
-	unsigned short client_port;
-	do
-	{
-		message = std::string();
-		sock.read(message, client_ip, client_port);
-		std::cout << client_ip << ":" << client_port << "$ " <<
-				message << '\n';
-
-	}
-	while (message.compare("q") != 0);
-#endif
+	ChordKey cumulus_key("Cumulus");
+	ChordKey storm_key("Stormageddon");
+	ChordKey strat_key("Stratus");
+	std::cout << "Cumulus Key: " << cumulus_key << '\n';
+	std::cout << "Storm Key: " << storm_key << '\n';
+	std::cout << "Stratus Key: " << strat_key << '\n';
+	std::cout << "Compare storm strat: " << storm_key.compareTo(strat_key) << '\n';
+	std::cout << "Compare strat storm: " << strat_key.compareTo(storm_key) << '\n';
+	std::cout << "Compare strat start: " << strat_key.compareTo(strat_key) << '\n';
+	std::cout << "Between: " << storm_key.isBetween(strat_key, cumulus_key) << '\n';
 	return 0;
 }
