@@ -5,18 +5,12 @@
 
 int main()
 {
+	//SCTPSocket my_socket(8080);
 #ifdef CLIENT
-	std::cout << "Client\n";
-	int socket_port;
-	std::cout << "Port Number: ";
-	std::cin >> socket_port;
-	std::cout << "Port number set: " << socket_port << '\n';
-	RDSocket sock(socket_port);
+	UDPSocket sock("142.104.68.132", 8081);
 	std::string message;
 	std::string ip_address;
-	std::cout << "Server ip address: ";
-	std::cin >> ip_address;
-	std::cout << "Sending to: " << ip_address << '\n';
+	ip_address = "142.104.68.132";
 
 	while (std::cin)
 	{
@@ -30,7 +24,7 @@ int main()
 
 #ifdef SERVER
 	std::cout << "Server\n";
-	RDSocket sock(8080);
+	UDPSocket sock("142.104.68.132", 8080);
 	std::string message;
 	std::string client_ip;
 	unsigned short client_port;

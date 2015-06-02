@@ -1,6 +1,6 @@
 #include "Socket.hpp"
 
-Socket::Socket(unsigned int port) :
+Socket::Socket(unsigned short port) :
 	m_bound(false),
 	m_good(false),
 	m_port(port)
@@ -11,7 +11,7 @@ Socket::Socket(unsigned int port) :
 	m_address.sin_port = htons(m_port);
 }
 
-Socket::Socket(std::string host_ip, unsigned int port) :
+Socket::Socket(std::string host_ip, unsigned short port) :
 	m_bound(false),
 	m_good(false),
 	m_port(port)
@@ -73,13 +73,13 @@ int Socket::read(std::string& message, std::string& client_address,
 
 /* UDP Socket */
 
-UDPSocket::UDPSocket(unsigned int port) :
+UDPSocket::UDPSocket(unsigned short port) :
 	Socket(port)
 {
 	setSocketFd();
 }
 
-UDPSocket::UDPSocket(std::string host_ip, unsigned int port) :
+UDPSocket::UDPSocket(std::string host_ip, unsigned short port) :
 	Socket(host_ip, port)
 {
 	setSocketFd();
@@ -117,51 +117,23 @@ void UDPSocket::setSocketFd()
 	else m_bound = false;
 }
 
-/* RDS Socket */
+/* SRDP Socket */
+/*
+SRDPSocket::SRDPSocket(std::string host_ip, unsigned short host_port) :
+	UDPSocket(host_ip, host_port)
+{ }
 
-RDSocket::RDSocket(unsigned int port) :
-	Socket(port)
+int SRDPSocket::write(const std::string& message, const std::string& client_ip,
+			unsigned short client_port) const
 {
-	setSocketFd();
+
 }
 
-RDSocket::RDSocket(std::string host_ip, unsigned int port) :
-	Socket(host_ip, port)
+
+int SRDPSocket::read(std::string& message, std::string& client_ip,
+			unsigned short& client_port) const
 {
-	setSocketFd();
-}
-
-void RDSocket::setSocketFd()
-{
-	m_socket_fd = socket(AF_INET, SOCK_SEQPACKET, 0);
-	if (m_socket_fd < 0)
-	{
-		std::cerr << "Failed to create reliable datagram socket\n";
-		m_good = false;
-	}
-	else m_good = true;
-	int socket_opt = 1;
-
-	/*
-	if (setsockopt(m_socket_fd, SOL_SOCKET, SO_REUSEADDR, (char*)&socket_opt, sizeof(socket_opt)) < 0)
-	{
-		m_good = false;
-		std::cerr << "Error: Failed to set socket options\n";
-	} */
-
-	// Bind Socket
-	if (m_good)
-	{
-		int bind_value = bind(m_socket_fd, (struct sockaddr*)&m_address,
-				sizeof(m_address));
-		if (bind_value < 0)
-		{
-			std::cerr << "Error: Failed to bind socket\n";
-			m_bound = false;
-		}
-		else m_bound = true;
-	}
-	else m_bound = false;
 
 }
+*/
 
