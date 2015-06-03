@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Macchord : Peer-to-peer name resolution">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Macchord</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/etcwilde/MACChord">View on GitHub</a>
+
+          <h1 id="project_title">Macchord</h1>
+          <h2 id="project_tagline">Peer-to-peer name resolution</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/etcwilde/MACChord/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/etcwilde/MACChord/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a id="mac-chord" class="anchor" href="#mac-chord" aria-hidden="true"><span class="octicon octicon-link"></span></a>MAC Chord</h1>
+
+<p>(Project Name subject to change)</p>
+
+<p>Evan Wilde</p>
+
+<h2>
+<a id="description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>Description</h2>
+
+<p>MACChord, like a DNS server, is a name resolution system using the Chord DHT algorithm. The project name originally stems from the idea of using the computer's MAC address as the unique identifier in the hash table;
+however, that is not human-readable. Instead, using any, unrestricted, unique identifier makes it much easier
+for humans to interact with. What separates MACChord from simply using a DNS is that it is distributed. This means that there is no central authority monitoring all the nodes, each node will help monitor the other nodes in the system, reducing the load of any given machine, and helping to improve the durability of the system.
+Furthermore, there can be multiple lookup rings, so names can be reused in other parts of the world.</p>
+
+<p>MACChord is attempting to fix the issue of Dynamic IP addresses. A Dynamic IP changes periodically, making it impossible for clients to connect to a host behind one. It would be like having a telephone number that changed every hour, your friends wouldn't be able to call you because they wouldn't know your number. There are services that provide a way around this, using an external server with a static IP to determine when the public IP of a server with a Dynamic IP has changed, then the external server updates its key-value store, correctly routing the traffic to that server. This puts the load on a single server, and gives all control to a central authority, ultimately forcing the user to hand out some money for the service. </p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Macchord maintained by <a href="https://github.com/etcwilde">etcwilde</a></p>
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
