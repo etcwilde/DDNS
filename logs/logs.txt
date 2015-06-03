@@ -36,3 +36,15 @@ Today I got a simple UDP socket interface working. I'll be adding a reliable
 socket interface next since that is what I want. I may add a TCP interface if
 it is simple, just for completeness of the wrapper. I've got a very simple
 client-server setup right now.
+
+June 2 2015 | Top down approach | Evan Wilde
+
+I've switched to using a top-down approach for the implementation. The
+bottom-up approaches kept leading to something that would not work over a
+network. The top-down approach appears to be giving more promising results.
+
+We are using a heartbeat to call the synchronization method and alert the
+neighbouring nodes that this node is still alive. We will store the heartbeat
+information of the neighbouring nodes so that we can quickly determine when one
+of them has died and hopefully more accurately determine when one is actually
+dead vs when the network is slow or the system is under high load.
