@@ -1,5 +1,6 @@
 # Evan Wide
-# Generic Makefile
+#
+# MAC CHORD Makefile
 #
 # LIBS
 # pthread  	Threading
@@ -38,10 +39,11 @@ D_LIB	= libs/
 D_INC	= inc/
 D_TEST	= tests/
 D_DOCS	= docs/
+D_PROT	= protocols/
 
 # Flags
 CFLAGS	= -c -iquote $(D_INC)
-LIBS	= -pthread -lssl -lcrypto
+LIBS	= -pthread -lssl -lcrypto -lprotobuf
 CXFLAGS = $(CFLAGS) -std=c++11
 
 # Generate Object file names
@@ -72,23 +74,16 @@ TEST_OBJS	= \
 	  $(patsubst $(D_TEST)%.C, $(D_BUILD)%.o, \
 	  $(patsubst $(D_TEST)%.cc, $(D_BUILD)%.o, $(TEST_SRCS)))))
 
-.PHONY:	all release debug test clean rebuild docs
+.PHONY:	all protocols release debug test clean rebuild docs
 # No optimizations
 all: $(D_BIN)$(EXEC)
 
-server_client: $(client) $(server)
 
-client: CFLAGS += -DCLIENT
-client: $(D_BIN) $(D_BUILD) $(LIBSS) $(OBJS)
-	$(CXX) -o $(D_BIN)$(EXEC)Client $(OBJS) $(LIBS)
+protocols: $(D_SRC)chord_message.pb.cc
 
-server: CFLAGS += -DSERVER
-server: $(D_BIN) $(D_BUILD) $(LIBSS) $(OBJS)
-	$(CXX) -o $(D_BIN)$(EXEC)Server $(OBJS) $(LIBS)
-
-
-
-
+$(D_SRC)chord_message.pb.cc: $(D_PROT)chord_message.proto
+	protoc -I=$(D_PROT) --cpp_out=$(D_SRC) $(D_PROT)chord_message.proto
+	mv $(D_SRC)chord_message.pb.h $(D_INC)chord_message.pb.h
 
 
 # Optimizations
@@ -101,7 +96,7 @@ debug: all
 
 # Unit testing enabled
 test: CFLAGS += -Wall -DTEST
-test: LIBS += -lcppunit -ldl
+test: LIBS += -lcppunit -ldl 
 test: clean  $(TEST_OBJS) all
 
 clean:
@@ -122,6 +117,7 @@ $(D_BUILD):
 
 $(D_BIN):
 	$(MKDIR) $(D_BIN)
+
 
 # Build files
 # Files with headers
@@ -163,19 +159,6 @@ $(D_BUILD)%.o : $(D_TEST)%.cpp
 $(D_BUILD)%.o : $(D_TEST)%.C
 	$(CXX) $(CXFLAGS) $< -o $@
 
-
-
-wipe_main:
-	$(RM) $(D_BUILD)main.o
-
-$(D_BIN)$(EXEC)Server: CFLAGS += -DSERVER
-$(D_BIN)$(EXEC)Server: $(cleanMain) $(D_BIN) $(D_BUILD) $(LIBSS) $(OBJS)
-	$(CXX) -o $(D_BIN)$(EXEC)Server $(OBJS) $(LIBS)
-
-$(D_BIN)$(EXEC)Client: CFLAGS += -DCLIENT
-$(D_BIN)$(EXEC)Client: $(cleanMain)
-$(D_BIN)$(EXEC)Client: $(D_BIN) $(D_BUILD) $(LIBSS) $(OBJS)
-	$(CXX) -o $(D_BIN)$(EXEC)Client $(OBJS) $(LIBS)
 
 # Link Objects
 $(D_BIN)$(EXEC): $(D_BIN) $(D_BUILD) $(LIBSS) $(OBJS)
