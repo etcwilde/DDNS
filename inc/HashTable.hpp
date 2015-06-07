@@ -11,6 +11,7 @@
 
 #include <utility>
 #include <vector>
+#include <unordered_map>
 
 #include "Hash.hpp"
 
@@ -35,25 +36,36 @@ class HashTable
 {
 public:
 	HashTable(unsigned long size=DEFAULT_HASH_TABLE_SIZE) : m_size(size),
-	m_table(size) { }
+	m_table(size, hashFunction) { }
 
 	// Note: This will over-wite anything in there
 	virtual void insert(std::string item)
-	{ m_table[Hash(item).djb2() % m_size] = item; }
+	{ m_table[Hash(item)] = item; }
 
 	// No error checking
 	virtual bool check(std::string item)
-	{ return m_table[Hash(item).djb2() % m_size].compare(item) == 0; }
+	{ return m_table[Hash(item)].compare(item) == 0; }
 
 	// No checking done
-	virtual std::string lookup(const Hash& h) const
-	{ return m_table[h.djb2() % m_size]; }
+	virtual std::string lookup(const Hash& h)
+	{ return m_table[h]; }
 
-	inline unsigned long size() const { return m_size; }
+	virtual void remove(const Hash& h)
+	{ m_table.erase(h); }
+
+	virtual void remove(const std::string& s)
+	{ m_table.erase(Hash(s)); }
+
+	inline unsigned long size() const { return m_table.size(); }
 
 private:
+	static inline size_t hashFunction(const Hash& h)
+	{
+		return h.djb2();
+	}
+
+	std::unordered_map<Hash, std::string, std::function<decltype(hashFunction)> > m_table;
 	unsigned long m_size;
-	std::vector<std::string> m_table;
 };
 
 

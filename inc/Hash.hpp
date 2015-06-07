@@ -39,6 +39,37 @@ public:
 	inline void operator=(const Hash& other)
 	{ memcpy(m_hash, other.m_hash, HASH_LENGTH_BYTES); }
 
+
+	int compareTo(const Hash& other) const
+	{
+		for (unsigned int i = 0; i < HASH_LENGTH_BYTES; i++)
+		{
+			const int loperand = m_hash[i] & 0xff;
+			const int roperand = other.m_hash[i] & 0xff;
+			if (loperand != roperand) return (loperand - roperand);
+		}
+		return 0;
+	}
+
+	inline bool operator<(const Hash& other) const
+	{ return compareTo(other) < 0; }
+
+	inline bool operator>(const Hash& other) const
+	{ return compareTo(other) > 0; }
+
+	inline bool operator==(const Hash& other) const
+	{ return compareTo(other) == 0; }
+
+	inline bool operator<= (const Hash& other) const
+	{ return compareTo(other) <= 0; }
+
+	inline bool operator>= (const Hash& other) const
+	{ return compareTo(other) >= 0; }
+
+
+
+
+
 	inline const unsigned char operator[](unsigned int i) const { return m_hash[i]; }
 	inline unsigned long size() const { return HASH_LENGTH_BYTES; }
 
