@@ -13,11 +13,21 @@
 #include "ChordKey.hpp"
 #include "Chord.hpp"
 #include "chord_message.pb.h"
+#include "HashTable.hpp"
 
 #define DEFAULT_PORT 8080
 
 int main(int argc, const char* argv[])
 {
+	std::string test_message("Hello World");
+	HashTable table;
+	Hash h(test_message);
+	table.insert(test_message);
+	std::cout << table.check("Goodbye") << '\n';
+	std::cout << table.check(test_message) << '\n';
+	std::cout << table.check("Helloworld") << '\n';
+	std::cout << table.lookup(test_message) << '\n';
+
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	UDPSocket* socket;
 	if (argc != 2 && argc != 4)
@@ -33,6 +43,7 @@ int main(int argc, const char* argv[])
 	unsigned short client_port;
 	Hash hash(std::to_string(host_port));
 	std::cout << "Id: " << hash.toString() << '\n';
+	std::cout << "Hash djb2: " << hash.djb2() << '\n';
 
 	// We are alone in the world, we just sit here and be quite
 	if (argc == 2)
@@ -131,7 +142,6 @@ int main(int argc, const char* argv[])
 		}
 
 	}
-
 	delete socket;
 	return 0;
 }
