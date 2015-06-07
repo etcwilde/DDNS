@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include <sstream>
 
 #include <string.h>
 #include <openssl/sha.h>
@@ -26,16 +27,24 @@ public:
 
 	inline const unsigned char operator[](unsigned int i) const { return m_hash[i]; }
 	inline unsigned long size() const { return HASH_LENGTH_BYTES; }
+	std::string toString() const
+	{
+		std::stringstream os; os << std::hex;
+		for (unsigned int i = 0; i < HASH_LENGTH_BYTES; i++)
+			os << static_cast<int>(m_hash[i]);
+		return os.str();
+	}
 private:
 	unsigned char m_hash[HASH_LENGTH_BYTES];
 };
 
-std::ostream& operator<<(std::ostream& os, const Hash& h)
-{
-	os << std::hex;
-	for (unsigned int i = 0; i < HASH_LENGTH_BYTES; i++)
-		os << (int)h[i];
-	os << std::dec;
-	return os;
-}
+// Nah
+// std::ostream& operator<<(std::ostream& os, const Hash& h)
+// {
+// 	os << std::hex;
+// 	for (unsigned int i = 0; i < HASH_LENGTH_BYTES; i++)
+// 		os << (int)h[i];
+// 	os << std::dec;
+// 	return os;
+// }
 #endif//HASH_HPP
