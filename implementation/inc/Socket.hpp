@@ -1,3 +1,11 @@
+
+/*
+ * Socket
+ * File:     Socket.hpp
+ * Author:   Evan Wilde                    <etcwilde@uvic.ca>
+ * Date:     May 20 2015
+ */
+
 #ifndef SOCKET_HPP
 #define SOCKET_HPP
 

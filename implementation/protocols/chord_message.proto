@@ -1,4 +1,5 @@
-package Chord_Protocs;
+
+package Chord;
 message Request
 {
 	required string id = 1;

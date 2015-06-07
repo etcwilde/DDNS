@@ -1,3 +1,11 @@
+
+/*
+ * Chord
+ * File:     Chord.hpp
+ * Author:   Evan Wilde                    <etcwilde@uvic.ca>
+ * Date:     Jun 02 2015
+ */
+
 #ifndef CHORD_HPP
 #define CHORD_HPP
 
@@ -8,6 +16,7 @@
 #include <unistd.h>
 
 #include "ChordKey.hpp"
+//#include "chord_message.pb.h"
 
 #define DEFAULT_CHORD_PORT 1994 // Default connection port if no port supplied
 #define DEFAULT_HEART_BEAT 1000 // Ping every 1 seconds
@@ -21,6 +30,11 @@
 // WHAT HAVE I DONE THIS ISN'T SUPPOSED TO BE DEPRESSING...
 
 // We store the information about or neighbors
+
+
+namespace Chord
+{
+
 typedef struct
 {
 	double heartbeat;
@@ -95,7 +109,7 @@ void Chord<T>::heartBeat()
 	}
 }
 
-
+}
 
 
 #endif//CHORD_HPP

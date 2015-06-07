@@ -1,3 +1,11 @@
+
+/*
+ * Socket
+ * File:     Socket.cpp
+ * Author:   Evan Wilde                    <etcwilde@uvic.ca>
+ * Date:     May 20 2015
+ */
+
 #include "Socket.hpp"
 
 Socket::Socket(unsigned short port) :

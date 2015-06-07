@@ -1,3 +1,11 @@
+
+/*
+ * main
+ * File:     main.cpp
+ * Author:   Evan Wilde                    <etcwilde@uvic.ca>
+ * Date:     Jun 07 2015
+ */
+
 #include <iostream>
 #include <string>
 
@@ -19,7 +27,7 @@ int main(int argc, const char* argv[])
 	}
 
 	unsigned short host_port = (unsigned short)atoi(argv[1]);
-	Chord_Protocs::Request request;
+	Chord::Request request;
 	std::string message;
 	std::string client_ip;
 	unsigned short client_port;
@@ -36,27 +44,27 @@ int main(int argc, const char* argv[])
 		request.ParseFromString(message);
 		switch (request.type())
 		{
-			case Chord_Protocs::Request::JOIN:
+			case Chord::Request::JOIN:
 				std::cout << "JOIN request From: "
 					<< client_ip << ":" << client_port
 					<< "| " << request.content() << " :\n"
 					<< request.id() << '\n';
 				break;
 
-			case Chord_Protocs::Request::DROP:
+			case Chord::Request::DROP:
 				std::cout << "Leave request From: "
 					<< client_ip << ":" << client_port
 					<< "| " << request.content() << " :\n"
 					<< request.id() << '\n';
 				break;
-			case Chord_Protocs::Request::GET:
+			case Chord::Request::GET:
 				std::cout << "GET request From: "
 					<< client_ip << ":" << client_port
 					<< "| " << request.content() << " :\n"
 					<< request.id() << '\n';
 				break;
 
-			case Chord_Protocs::Request::SET:
+			case Chord::Request::SET:
 				std::cout << "SET request From: "
 					<< client_ip << ":" << client_port
 					<< "| " << request.content() << " :\n"
@@ -68,7 +76,7 @@ int main(int argc, const char* argv[])
 		}
 
 		request.set_id(hash.toString());
-		request.set_type(Chord_Protocs::Request::DROP);
+		request.set_type(Chord::Request::DROP);
 		request.set_content("Goodbye, it was fun!");
 		request.SerializeToString(&message);
 		socket->write(message, client_ip, client_port);
@@ -81,7 +89,7 @@ int main(int argc, const char* argv[])
 		socket = new UDPSocket(host_port);
 
 		request.set_id(hash.toString());
-		request.set_type(Chord_Protocs::Request::SET);
+		request.set_type(Chord::Request::SET);
 		request.set_content("Hello from mars");
 
 		request.SerializeToString(&message);
@@ -91,27 +99,27 @@ int main(int argc, const char* argv[])
 		request.ParseFromString(message);
 		switch (request.type())
 		{
-			case Chord_Protocs::Request::JOIN:
+			case Chord::Request::JOIN:
 				std::cout << "JOIN request From: "
 					<< client_ip << ":" << client_port
 					<< "| " << request.content() << " :\n"
 					<< request.id() << '\n';
 				break;
 
-			case Chord_Protocs::Request::DROP:
+			case Chord::Request::DROP:
 				std::cout << "Leave request From: "
 					<< client_ip << ":" << client_port
 					<< "| " << request.content() << " :\n"
 					<< request.id() << '\n';
 				break;
-			case Chord_Protocs::Request::GET:
+			case Chord::Request::GET:
 				std::cout << "GET request From: "
 					<< client_ip << ":" << client_port
 					<< "| " << request.content() << " :\n"
 					<< request.id() << '\n';
 				break;
 
-			case Chord_Protocs::Request::SET:
+			case Chord::Request::SET:
 				std::cout << "SET request From: "
 					<< client_ip << ":" << client_port
 					<< "| " << request.content() << " :\n"

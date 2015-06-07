@@ -1,3 +1,11 @@
+
+/*
+ * Hash
+ * File:     Hash.hpp
+ * Author:   Evan Wilde                    <etcwilde@uvic.ca>
+ * Date:     Jun 02 2015
+ */
+
 #ifndef HASH_HPP
 #define HASH_HPP
 

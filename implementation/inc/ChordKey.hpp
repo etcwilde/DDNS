@@ -1,9 +1,20 @@
+
+/*
+ * ChordKey
+ * File:     ChordKey.hpp
+ * Author:   Evan Wilde                    <etcwilde@uvic.ca>
+ * Date:     Jun 02 2015
+ */
+
 #ifndef CHORDKEY_HPP
 #define CHORDKEY_HPP
 
 #include "Hash.hpp"
 #include <string>
 #include <ostream>
+
+namespace Chord
+{
 
 class ChordKey
 {
@@ -70,21 +81,17 @@ public:
 	inline const Hash& getKey() const
 	{ return m_key; }
 
-	// I dunno about this one
+	// I dunno about this one Seems sketchy
 	inline void setKey(const Hash& h)
 	{ m_key = h; }
 
-	friend std::ostream& operator<<(std::ostream& os, const ChordKey& k);
+	//friend std::ostream& operator<<(std::ostream& os, const ChordKey& k)
+	//{ os << k.getKey(); return os; }
 
 private:
 	Hash m_key;
 	std::string m_id;
 };
 
-std::ostream& operator<<(std::ostream& os, const ChordKey& k)
-{
-	os << k.getKey();
-	return os;
 }
-
 #endif//CHORDKEY_HPP
