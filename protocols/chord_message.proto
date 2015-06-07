@@ -1,0 +1,16 @@
+
+package Chord;
+message Request
+{
+	required string id = 1;
+	optional string content = 2; // Maybe make this repeated?
+	enum RequestType
+	{
+		JOIN = 0;
+		DROP = 1;
+		GET = 2;
+		SET = 3;
+	}
+
+	required RequestType type = 3 [default = JOIN];
+}
