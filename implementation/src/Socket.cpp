@@ -27,12 +27,13 @@ Socket::~Socket()
 	if (m_good) close(m_socket_fd);
 }
 
-int Socket::write(const std::string& message, const std::string& clientname,
+
+int Socket::write(const std::string& message, const std::string& client_ip,
 		unsigned short client_port) const
 {
 	struct sockaddr_in client_address;
 	client_address.sin_family = AF_INET;
-	inet_pton(AF_INET, clientname.c_str(), &(client_address.sin_addr));
+	inet_pton(AF_INET, client_ip.c_str(), &(client_address.sin_addr));
 	client_address.sin_port = htons(client_port);
 	int bytes_sent = sendto(m_socket_fd,
 			message.c_str(), message.size(), 0,
@@ -41,7 +42,7 @@ int Socket::write(const std::string& message, const std::string& clientname,
 	return bytes_sent;
 }
 
-int Socket::read(std::string& message, std::string& client_address,
+int Socket::read(std::string& message, std::string& client_ip,
 		unsigned short& client_port) const
 {
 	unsigned char buffer[BUFFER_SIZE];
@@ -62,11 +63,7 @@ int Socket::read(std::string& message, std::string& client_address,
 	inet_ntop(AF_INET, &(client_addr.sin_addr), (char*)client_ip_buf, INET_ADDRSTRLEN);
 	if (client_ip_buf == NULL)
 		std::cerr << "Error: Failed to get client ip address\n";
-	else
-	{
-		std::cout << "Client IP Buffer: " << client_ip_buf << '\n';
-		client_address = std::string((char*)client_ip_buf);
-	}
+	else client_ip = std::string((char*)client_ip_buf);
 	return bytes_read;
 }
 
