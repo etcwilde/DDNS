@@ -31,22 +31,54 @@
  * bonus feature. Then we don't need to define a table size, c++ will handle
  * that for us.
  */
-
 class HashTable
 {
 public:
-	HashTable(unsigned long size=DEFAULT_HASH_TABLE_SIZE) : m_size(size),
-	m_table(size, hashFunction) { }
+	/**
+	 * Insert a value at the key
+	 *
+	 * If a value is already stored at the key, the value is overwritten
+	 */
+	virtual void insert(const Hash& key, std::string value) = 0;
 
-	// Note: This will over-wite anything in there
-	virtual void insert(Hash key, std::string value)
+	/**
+	 * Check if a value is at a key
+	 *
+	 * Used to determine if a value is stored at a key
+	 */
+	virtual bool check(const Hash& key, std::string test_value) = 0;
+
+	/**
+	 * Returns the value at a key
+	 *
+	 * Returns the value stored at a key
+	 */
+	virtual std::string lookup(const Hash& h) = 0;
+
+	/**
+	 * Removes a value at a key
+	 */
+	virtual void remove(const Hash& h) = 0;
+};
+
+
+/**
+ * \class LocalHashTable
+ *
+ * Stores the key value pair locally.
+ */
+class LocalHashTable : public HashTable
+{
+public:
+	LocalHashTable(unsigned long size=DEFAULT_HASH_TABLE_SIZE) :
+		m_size(size), m_table(size, hashFunction) { }
+
+	virtual void insert(const Hash& key, std::string value)
 	{ m_table[key] = value; }
 
-	// No error checking
-	virtual bool check(Hash key, std::string test_value)
+	virtual bool check(const Hash& key, std::string test_value)
 	{ return (m_table[key].compare(test_value) == 0); }
 
-	// No checking done
 	virtual std::string lookup(const Hash& h)
 	{ return m_table[h]; }
 
@@ -57,29 +89,31 @@ public:
 
 private:
 	static inline size_t hashFunction(const Hash& h)
-	{
-		return h.djb2();
-	}
+	{ return h.djb2(); }
 
 	std::unordered_map<Hash, std::string, std::function<decltype(hashFunction)> > m_table;
 	unsigned long m_size;
 };
 
-
-class BasicHashTable : public HashTable
+/**
+ * \class BasicHashTable
+ *
+ * Uses the value to generate the hash that is used to store the value.
+ */
+class BasicHashTable : public LocalHashTable
 {
 public:
 	BasicHashTable(unsigned long size=DEFAULT_HASH_TABLE_SIZE) :
-	HashTable(size) {}
+	LocalHashTable(size) {}
 
 	virtual void insert(std::string value)
-	{  HashTable::insert(Hash(value), value); }
+	{  LocalHashTable::insert(Hash(value), value); }
 
 	virtual bool check(std::string value)
-	{ return HashTable::check(Hash(value), value); }
+	{ return LocalHashTable::check(Hash(value), value); }
 
 	void remove(std::string value)
-	{ HashTable::remove(Hash(value)); }
+	{ LocalHashTable::remove(Hash(value)); }
 
 };
 

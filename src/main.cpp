@@ -19,17 +19,6 @@
 
 int main(int argc, const char* argv[])
 {
-	/*std::string test_message("Hello World");
-	HashTable table;
-	Hash h(test_message);
-	table.insert(test_message);
-	std::cout << table.check("Goodbye") << '\n';
-	std::cout << table.check(test_message) << '\n';
-	std::cout << table.check("Helloworld") << '\n';
-	std::cout << table.lookup(test_message) << '\n'; */
-
-
-	//std::string test_message("Hello World");
 	BasicHashTable table;
 	std::string test_string("Hello World");
 	table.insert(test_string);
@@ -39,8 +28,7 @@ int main(int argc, const char* argv[])
 	table.insert("Another string");
 	std::cout << table.check("Another string") << '\n';
 
-
-
+	std::cout << table.lookup(Hash("Not in table")) << '\n';
 
 
 
