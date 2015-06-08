@@ -12,16 +12,22 @@
 #include <string>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 #include <unistd.h>
 
-#include "ChordKey.hpp"
+#include "HashTable.hpp"
+#include "chord_message.pb.h"
+#include "Socket.hpp"
 //#include "chord_message.pb.h"
 
-#define DEFAULT_CHORD_PORT 1994 // Default connection port if no port supplied
-#define DEFAULT_HEART_BEAT 1000 // Ping every 1 seconds
-#define DEFAULT_RESILLIANCY 3 // Three pulse misses and it is dead
-
+#define CHORD_DEFAULT_PORT 1994 	// Default connection port if no port supplied
+#define CHORD_DEFAULT_HEART_BEAT 1000 	// Ping every 1 seconds
+#define CHORD_DEFAULT_RESILLIANCY 3 	// Three pulse misses and it is dead
+#define CHORD_DEFAULT_NODES_EXPONENT 3  // Chord ring size is 3
+#define CHORD_DEFAULT_TABLE_SIZE 512	// 512 items can be stored on a single node
+//#define CHORD_DEFAULT_HANDLER_THREADS 3	// Uses 3 threads for handling by default
+#define CHORD_DEFAULT_HANDLER_THREADS 1
 
 // We use a heartbeat to determine if the node is still alive. When three
 // pulses are missed, the node is dead and should be removed from the chord
@@ -30,86 +36,69 @@
 // WHAT HAVE I DONE THIS ISN'T SUPPOSED TO BE DEPRESSING...
 
 // We store the information about or neighbors
+//
 
+// typedef uint unsigned int;
+// typedef ulong unsigned long;
 
-namespace Chord
+namespace ChordDHT
 {
-
-typedef struct
-{
-	double heartbeat;
-	unsigned int resiliancy;
-} neighbor_stats_t;
-
-
-template<class T>
-class Chord
-{
-public:
-	Chord() :
-		m_heartbeat(DEFAULT_HEART_BEAT),
-		m_resiliancy(DEFAULT_RESILLIANCY),
-		m_dead(false)
-	{ m_heart = std::thread(&Chord::heartBeat, this); }
-
-	~Chord()
+	class Chord : public HashTable
 	{
-		m_dead = true;
-		m_heart.join();
-		//It will be at most as long as the heartbeat duration
-	}
-	// Local things
-	void start();
-	bool join(std::string group_ip, unsigned int group_port);
-	bool join(std::string group_ip);
-	void disconnect();
-	void update(T new_information) const; // Sends update message
 
-	// Local
-	inline T getValue() const { return m_value; }
-	inline void setValue(T value) const { m_value = value; }
+	// DHT stuff -- This is the interface for the hash table workd
+	public:
+		Chord(uint global_exponent=CHORD_DEFAULT_NODES_EXPONENT,
+				ulong local_size=CHORD_DEFAULT_TABLE_SIZE);
+		~Chord();
+
+		virtual void insert(const Hash& key, std::string value);
+		virtual bool check(const Hash& key, std::string test_value);
+		virtual std::string lookup(const Hash& h);
+		virtual void remove(const Hash&h);
+
+	private:
+		LocalHashTable m_table;
+		unsigned int m_global_exponent;
+		unsigned long m_local_size;
+
+	// Chord Stuff -- Interface with the networking side
+	public:
+		void create(unsigned short port=CHORD_DEFAULT_PORT);
+		void join(const std::string& host_ip,
+				unsigned short host_port=CHORD_DEFAULT_PORT,
+				unsigned short my_port=CHORD_DEFAULT_PORT);
 
 
-	// Global
-	T lookup(ChordKey key);
+	protected:
+		void handle_join();
+		void handle_get(const Hash& key);
+		void handle_set(const Hash& key, std::string value);
+		void handle_drop();
+		void handle_request(const ChordDHT::Request& request);
 
-protected:
-	virtual void pulse(); // Function called with each heart beat
+	private:
+		void request_processor();
+		unsigned short m_port;
+		std::vector<std::thread> m_handler_threads;
+		UDPSocket* m_primary_socket;
 
-private:
-	// Network stuff? I don't know yet
+	// Heartbeat stuff
+	protected:
+		virtual void pulse();
 
-private:
-	// Heart stuff
-	void heartBeat(); // Calls the pulse function and handles the thread
-	double m_heartbeat; // Delay time of the heart (milliseconds)
-	unsigned int m_resiliancy; // How long we wait before saying a node is dead
-	bool m_dead;
-	std::thread m_heart;
-	neighbor_stats_t m_neighbors[2];
+	private:
+		void heartBeat();
+		double m_heartbeat;
+		unsigned int m_resiliancy;
+		bool m_dead;
+		std::thread m_heart;
 
-private:
-	// value
-	T m_value;
+	// Networking Stuff
+	private:
+
+	};
 };
-
-template <class T>
-void Chord<T>::pulse()
-{
-	std::cout << " ** thump ** \n";
-}
-
-template <class T>
-void Chord<T>::heartBeat()
-{
-	while (!m_dead)
-	{
-		pulse();
-		usleep(m_heartbeat * 1000);
-	}
-}
-
-}
 
 
 #endif//CHORD_HPP
