@@ -19,14 +19,30 @@
 
 int main(int argc, const char* argv[])
 {
-	std::string test_message("Hello World");
+	/*std::string test_message("Hello World");
 	HashTable table;
 	Hash h(test_message);
 	table.insert(test_message);
 	std::cout << table.check("Goodbye") << '\n';
 	std::cout << table.check(test_message) << '\n';
 	std::cout << table.check("Helloworld") << '\n';
-	std::cout << table.lookup(test_message) << '\n';
+	std::cout << table.lookup(test_message) << '\n'; */
+
+
+	//std::string test_message("Hello World");
+	BasicHashTable table;
+	std::string test_string("Hello World");
+	table.insert(test_string);
+	std::cout << table.check(test_string) << '\n';
+	std::cout << table.check("Another string") << '\n';
+	std::cout << table.lookup(Hash(test_string)) << '\n';
+	table.insert("Another string");
+	std::cout << table.check("Another string") << '\n';
+
+
+
+
+
 
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	UDPSocket* socket;

@@ -39,12 +39,12 @@ public:
 	m_table(size, hashFunction) { }
 
 	// Note: This will over-wite anything in there
-	virtual void insert(std::string item)
-	{ m_table[Hash(item)] = item; }
+	virtual void insert(Hash key, std::string value)
+	{ m_table[key] = value; }
 
 	// No error checking
-	virtual bool check(std::string item)
-	{ return m_table[Hash(item)].compare(item) == 0; }
+	virtual bool check(Hash key, std::string test_value)
+	{ return (m_table[key].compare(test_value) == 0); }
 
 	// No checking done
 	virtual std::string lookup(const Hash& h)
@@ -52,9 +52,6 @@ public:
 
 	virtual void remove(const Hash& h)
 	{ m_table.erase(h); }
-
-	virtual void remove(const std::string& s)
-	{ m_table.erase(Hash(s)); }
 
 	inline unsigned long size() const { return m_table.size(); }
 
@@ -68,5 +65,22 @@ private:
 	unsigned long m_size;
 };
 
+
+class BasicHashTable : public HashTable
+{
+public:
+	BasicHashTable(unsigned long size=DEFAULT_HASH_TABLE_SIZE) :
+	HashTable(size) {}
+
+	virtual void insert(std::string value)
+	{  HashTable::insert(Hash(value), value); }
+
+	virtual bool check(std::string value)
+	{ return HashTable::check(Hash(value), value); }
+
+	void remove(std::string value)
+	{ HashTable::remove(Hash(value)); }
+
+};
 
 #endif//HASHTABLE_HPP
