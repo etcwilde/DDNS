@@ -1,4 +1,3 @@
-
 /*
  * Chord
  * File:     Chord.hpp
@@ -13,13 +12,14 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <iostream>
 
 #include <unistd.h>
+
 
 #include "HashTable.hpp"
 #include "chord_message.pb.h"
 #include "Socket.hpp"
-//#include "chord_message.pb.h"
 
 #define CHORD_DEFAULT_PORT 1994 	// Default connection port if no port supplied
 #define CHORD_DEFAULT_HEART_BEAT 1000 	// Ping every 1 seconds
@@ -38,24 +38,25 @@
 // We store the information about or neighbors
 //
 
-// typedef uint unsigned int;
-// typedef ulong unsigned long;
-
 namespace ChordDHT
 {
-	class Chord : public HashTable
+	class Chord : public DistributedHashTable
 	{
 
-	// DHT stuff -- This is the interface for the hash table workd
+	// DHT stuff -- This is the interface for the hash table
 	public:
-		Chord(uint global_exponent=CHORD_DEFAULT_NODES_EXPONENT,
-				ulong local_size=CHORD_DEFAULT_TABLE_SIZE);
+		Chord(unsigned int global_exponent=CHORD_DEFAULT_NODES_EXPONENT,
+				unsigned long local_size=CHORD_DEFAULT_TABLE_SIZE);
 		~Chord();
 
 		virtual void insert(const Hash& key, std::string value);
-		virtual bool check(const Hash& key, std::string test_value);
-		virtual std::string lookup(const Hash& h);
-		virtual void remove(const Hash&h);
+		virtual bool check(const Hash& key, std::string test_value,
+				std::string& ip, unsigned short& port);
+
+		virtual std::string lookup(const Hash& key, std::string& ip,
+				unsigned short& port);
+
+		virtual void remove(const Hash& key);
 
 	private:
 		LocalHashTable m_table;
@@ -68,17 +69,16 @@ namespace ChordDHT
 		void join(const std::string& host_ip,
 				unsigned short host_port=CHORD_DEFAULT_PORT,
 				unsigned short my_port=CHORD_DEFAULT_PORT);
-
-
 	protected:
-		void handle_join();
-		void handle_get(const Hash& key);
-		void handle_set(const Hash& key, std::string value);
+		void handle_join(const std::string& ip, unsigned short port);
+		void handle_get(const std::string& ip, unsigned int port,
+				const Hash& key);
+		void handle_set(const std::string& ip, unsigned int port,
+				const Hash& key, std::string value);
 		void handle_drop();
-		void handle_request(const ChordDHT::Request& request);
 
 	private:
-		void request_processor();
+		void request_handler();
 		unsigned short m_port;
 		std::vector<std::thread> m_handler_threads;
 		UDPSocket* m_primary_socket;

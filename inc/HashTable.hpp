@@ -53,12 +53,12 @@ public:
 	 *
 	 * Returns the value stored at a key
 	 */
-	virtual std::string lookup(const Hash& h) = 0;
+	virtual std::string lookup(const Hash& key) = 0;
 
 	/**
 	 * Removes a value at a key
 	 */
-	virtual void remove(const Hash& h) = 0;
+	virtual void remove(const Hash& key) = 0;
 };
 
 
@@ -117,4 +117,40 @@ public:
 
 };
 
+
+class DistributedHashTable : public HashTable
+{
+public:
+	virtual bool check(const Hash& key, std::string test_value)
+	{
+		std::string ip;
+		unsigned short port;
+		return check(key, test_value, ip, port);
+	}
+
+	/**
+	 * Check
+	 *
+	 * Returns the existence of the value and the ip/port where the value
+	 * is stored
+	 */
+	virtual bool check(const Hash& key, std::string test_value,
+			std::string& ip, unsigned short& port)=0;
+
+	virtual std::string lookup(const Hash& key)
+	{
+		std::string ip; unsigned short port;
+		return lookup(key, ip, port);
+	}
+
+	/**
+	 * Lookup
+	 *
+	 * Returns the value at a given key and the ip/port where the value is
+	 * stored
+	 */
+	virtual std::string lookup(const Hash& key, std::string& ip,
+		       unsigned short& port)=0;
+
+};
 #endif//HASHTABLE_HPP

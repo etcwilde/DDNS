@@ -1,5 +1,6 @@
 
-/* * Chord
+/*
+ * Chord
  * File:     Chord.cpp
  * Author:   Evan Wilde                    <etcwilde@uvic.ca>
  * Date:     Jun 02 2015
@@ -9,7 +10,7 @@
 
 using namespace ChordDHT;
 
-ChordDHT::Chord::Chord(uint global_exponent, ulong local_size):
+Chord::Chord(uint global_exponent, ulong local_size):
 	m_global_exponent(global_exponent),
 	m_local_size(local_size),
 	m_primary_socket(NULL)
@@ -38,15 +39,19 @@ void Chord::Chord::insert(const Hash& key, std::string value)
 {
 }
 
-bool Chord::check(const Hash& key, std::string test_value)
+
+bool Chord::check(const Hash& key, std::string test_value, std::string& ip,
+		unsigned short& port)
 {
 	return false;
 }
 
-std::string Chord::lookup(const Hash& key)
+std::string Chord::lookup(const Hash& key, std::string& ip, unsigned short& port)
 {
 	return "Hello";
 }
+
+
 
 void Chord::remove(const Hash& key)
 {
@@ -61,62 +66,92 @@ void Chord::create(unsigned short port)
 	for (unsigned int i = 0; i < CHORD_DEFAULT_HANDLER_THREADS; ++i)
 	{
 		m_handler_threads.push_back(
-				std::thread(&Chord::request_processor, this));
+				std::thread(&Chord::request_handler, this));
 	}
 	m_primary_socket = new UDPSocket(port);
 }
 
-void ChordDHT::Chord::join(const std::string& host_ip,
+void Chord::join(const std::string& host_ip,
 		unsigned short host_port, unsigned short my_port)
 {
 	std::cout << " Joining Chord Node\n";
 	create(my_port);
 	// Now send join request
-	ChordDHT::Request join_request;
+	Request join_request;
 	std::string join_message;
 	// TODO: Use a thing specific to this node, the port number will only
 	// be unique for nodes on the same machine
 	Hash my_hash(std::to_string(my_port));
 	join_request.set_id(my_hash.toString());
 	join_request.set_content("CHORD JOIN <my_ip>--<my_port>");
-	join_request.set_type(ChordDHT::Request::JOIN);
+	join_request.set_type(Request::JOIN);
 	join_request.SerializeToString(&join_message);
 	m_primary_socket->write(join_message, host_ip, host_port);
 }
 
-void Chord::request_processor()
+
+
+
+
+void Chord::request_handler()
 {
 	std::cout << " Request Processor made!\n";
 
 	while (m_primary_socket == NULL) {} //Spin lock
 	while (!m_dead)
 	{
-		std::cout << "  Making request, string, and ip stuff\n";
-		ChordDHT::Request current_request;
+		Request current_request;
 		std::string message;
 		std::string client_ip;
 		unsigned short client_port;
-		std::cout << "  Made...\n  Reading from socket\n";
 		m_primary_socket->read(message, client_ip, client_port);
 		if (m_dead) break;
 		current_request.ParseFromString(message);
-		// Okay cool, we now have the request information
-		std::cout << "Request: " <<  current_request.id() << ":"
-			<< current_request.content() << '\n';
+		switch(current_request.type())
+		{
+			case Request::JOIN:
+				{
+					std::cout << "JOIN REQUEST\n";
+					break;
+				}
+			case Request::DROP:
+				{
+					std::cout << "DROP REQUEST\n";
+					break;
+				}
+			case Request::GET:
+				{
+					std::cout << "GET REQUEST\n";
+					break;
+				}
+			case Request::SET:
+				{
+					std::cout << "SET REQUEST\n";
+					break;
+				}
+			case Request::SYNC:
+				{
+					std::cout << "SYNC REQUEST\n";
+					break;
+				}
+			default:
+				{
+					std::cerr <<"Request Protocol Error\n";
+					break;
+				}
+		}
 	}
 	std::cout << " Request Processor killed!\n";
 }
 
-void Chord::handle_request(const ChordDHT::Request& request)
-{
-}
-
-
-
 
 // Heart Stuff
 
-void Chord::pulse() { std::cout << " ** thump **\n"; }
+void Chord::pulse()
+{
+	std::cout << " ** thump **\n";
+
+}
 void Chord::heartBeat()
 {
 	while (!m_dead)
