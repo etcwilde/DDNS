@@ -35,6 +35,8 @@ public:
 	virtual int read(std::string& message, std::string& client_ip,
 			unsigned short& client_port) const;
 
+	void shutdown();
+
 protected:
 	Socket(unsigned short port);
 
@@ -83,6 +85,7 @@ private:
  *
  *
  */
+/*
 class SRDPSocket : public UDPSocket
 {
 public:
@@ -108,5 +111,6 @@ protected:
 	unsigned short m_seqno;
 	unsigned short m_ackno;
 };
+*/
 
 #endif//SOCKET_HPP

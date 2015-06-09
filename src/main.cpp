@@ -19,133 +19,34 @@
 
 int main(int argc, const char* argv[])
 {
-	BasicHashTable table;
-	std::string test_string("Hello World");
-	table.insert(test_string);
-	std::cout << table.check(test_string) << '\n';
-	std::cout << table.check("Another string") << '\n';
-	std::cout << table.lookup(Hash(test_string)) << '\n';
-	table.insert("Another string");
-	std::cout << table.check("Another string") << '\n';
 
-	std::cout << table.lookup(Hash("Not in table")) << '\n';
-
-
+	ChordDHT::Chord chord_test;
+	std::string client_ip;
+	unsigned short client_port;
+	unsigned short host_port;
 
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
-	UDPSocket* socket;
 	if (argc != 2 && argc != 4)
 	{
 		std::cout << "Usage: " << argv[0] << " <My Port> <Host IP address> <Host Port Number>\n";
 		return 1;
 	}
 
-	unsigned short host_port = (unsigned short)atoi(argv[1]);
-	ChordDHT::Request request;
-	std::string message;
-	std::string client_ip;
-	unsigned short client_port;
-	Hash hash(std::to_string(host_port));
-	std::cout << "Id: " << hash.toString() << '\n';
-	std::cout << "Hash djb2: " << hash.djb2() << '\n';
-
+	host_port = static_cast<unsigned short>(atoi(argv[1]));
 	// We are alone in the world, we just sit here and be quite
 	if (argc == 2)
 	{
-		// We are alone and no chord
-		socket = new UDPSocket(host_port);
-
-		socket->read(message, client_ip, client_port);
-		request.ParseFromString(message);
-		switch (request.type())
-		{
-			case ChordDHT::Request::JOIN:
-				std::cout << "JOIN request From: "
-					<< client_ip << ":" << client_port
-					<< "| " << request.content() << " :\n"
-					<< request.id() << '\n';
-				break;
-
-			case ChordDHT::Request::DROP:
-				std::cout << "Leave request From: "
-					<< client_ip << ":" << client_port
-					<< "| " << request.content() << " :\n"
-					<< request.id() << '\n';
-				break;
-			case ChordDHT::Request::GET:
-				std::cout << "GET request From: "
-					<< client_ip << ":" << client_port
-					<< "| " << request.content() << " :\n"
-					<< request.id() << '\n';
-				break;
-
-			case ChordDHT::Request::SET:
-				std::cout << "SET request From: "
-					<< client_ip << ":" << client_port
-					<< "| " << request.content() << " :\n"
-					<< request.id() << '\n';
-				break;
-
-			default:
-				std::cout << "You suck!\n";
-		}
-
-		request.set_id(hash.toString());
-		request.set_type(ChordDHT::Request::DROP);
-		request.set_content("Goodbye, it was fun!");
-		request.SerializeToString(&message);
-		socket->write(message, client_ip, client_port);
+		chord_test.create(host_port);
 	}
-	else
+	else // We have the host IP and port number
 	{
 		client_ip = std::string(argv[2]);
-		client_port = (unsigned short)atoi(argv[3]);
-		// We are not alone
-		socket = new UDPSocket(host_port);
-
-		request.set_id(hash.toString());
-		request.set_type(ChordDHT::Request::SET);
-		request.set_content("Hello from mars");
-
-		request.SerializeToString(&message);
-		socket->write(message, client_ip, client_port);
-
-		socket->read(message, client_ip, client_port);
-		request.ParseFromString(message);
-		switch (request.type())
-		{
-			case ChordDHT::Request::JOIN:
-				std::cout << "JOIN request From: "
-					<< client_ip << ":" << client_port
-					<< "| " << request.content() << " :\n"
-					<< request.id() << '\n';
-				break;
-
-			case ChordDHT::Request::DROP:
-				std::cout << "Leave request From: "
-					<< client_ip << ":" << client_port
-					<< "| " << request.content() << " :\n"
-					<< request.id() << '\n';
-				break;
-			case ChordDHT::Request::GET:
-				std::cout << "GET request From: "
-					<< client_ip << ":" << client_port
-					<< "| " << request.content() << " :\n"
-					<< request.id() << '\n';
-				break;
-
-			case ChordDHT::Request::SET:
-				std::cout << "SET request From: "
-					<< client_ip << ":" << client_port
-					<< "| " << request.content() << " :\n"
-					<< request.id() << '\n';
-				break;
-
-			default:
-				std::cout << "You suck!\n";
-		}
-
+		client_port = static_cast<unsigned short>(atoi(argv[3]));
+		chord_test.join(client_ip, client_port, host_port);
 	}
-	delete socket;
+	std::cout << " Hit Return to exit\n";
+	std::string something;
+	std::getline(std::cin, something);
+	//std::cin >> something;
 	return 0;
 }

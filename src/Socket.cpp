@@ -35,6 +35,11 @@ Socket::~Socket()
 	if (m_good) close(m_socket_fd);
 }
 
+void Socket::shutdown()
+{
+	::shutdown(m_socket_fd, SHUT_RDWR);
+}
+
 
 int Socket::write(const std::string& message, const std::string& client_ip,
 		unsigned short client_port) const
