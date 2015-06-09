@@ -5,10 +5,11 @@ message Request
 	optional string content = 2; // Maybe make this repeated?
 	enum RequestType
 	{
-		JOIN = 0;
-		DROP = 1;
-		GET = 2;
-		SET = 3;
+		JOIN = 0; // Join chord ring
+		DROP = 1; // Remove from chord ring
+		GET = 2; // Get value from chord
+		SET = 3; // Set value in chord
+		SYNC = 4; // Stabilizing communications
 	}
 
 	required RequestType type = 3 [default = JOIN];
