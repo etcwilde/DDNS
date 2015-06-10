@@ -67,9 +67,6 @@ public:
 	{ return compareTo(other) >= 0; }
 
 
-
-
-
 	inline const unsigned char operator[](unsigned int i) const { return m_hash[i]; }
 	inline unsigned long size() const { return HASH_LENGTH_BYTES; }
 

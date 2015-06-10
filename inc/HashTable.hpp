@@ -91,8 +91,8 @@ private:
 	static inline size_t hashFunction(const Hash& h)
 	{ return h.djb2(); }
 
-	std::unordered_map<Hash, std::string, std::function<decltype(hashFunction)> > m_table;
 	unsigned long m_size;
+	std::unordered_map<Hash, std::string, std::function<decltype(hashFunction)> > m_table;
 };
 
 /**

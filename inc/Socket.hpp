@@ -27,7 +27,7 @@
 class Socket
 {
 public:
-	~Socket();
+	virtual ~Socket();
 
 	virtual int write(const std::string& message, const std::string& client_ip,
 			unsigned short client_port) const;
