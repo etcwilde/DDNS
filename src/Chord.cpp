@@ -10,13 +10,16 @@
 
 using namespace ChordDHT;
 
-Chord::Chord(uint global_exponent, ulong local_size):
+Chord::Chord(std::string uid, uint global_exponent, ulong local_size):
+	m_table(),
 	m_global_exponent(global_exponent),
 	m_local_size(local_size),
-	m_primary_socket(NULL)
+	m_primary_socket(NULL),
+	m_uid(uid),
+	m_uid_hash(Hash(uid))
 {
 	m_dead = false;
-	m_heartbeat = 1000;
+	m_heartbeat = CHORD_DEFAULT_HEART_BEAT;
 	m_heart = std::thread(&Chord::heartBeat, this);
 	std::cout << "Starting Chord\n";
 }
@@ -75,6 +78,7 @@ void Chord::join(const std::string& host_ip,
 		unsigned short host_port, unsigned short my_port)
 {
 	std::cout << " Joining Chord Node\n";
+	std::cout << "My UID/HASH\n UID: " << m_uid << "\n HASH: " << m_uid_hash.toString() << '\n';
 	create(my_port);
 	// Now send join request
 	Request join_request;
@@ -83,16 +87,14 @@ void Chord::join(const std::string& host_ip,
 	// be unique for nodes on the same machine
 	Hash my_hash(std::to_string(my_port));
 	join_request.set_id(my_hash.toString());
-	join_request.set_content("CHORD JOIN <my_ip>--<my_port>");
+	join_request.set_content(m_uid_hash.toString());
 	join_request.set_type(Request::JOIN);
 	join_request.SerializeToString(&join_message);
 	m_primary_socket->write(join_message, host_ip, host_port);
 }
 
 
-
-
-
+// Request handling
 void Chord::request_handler()
 {
 	std::cout << " Request Processor made!\n";
@@ -111,7 +113,8 @@ void Chord::request_handler()
 		{
 			case Request::JOIN:
 				{
-					std::cout << "JOIN REQUEST\n";
+					handle_join(current_request,
+							client_ip, client_port);
 					break;
 				}
 			case Request::DROP:
@@ -144,21 +147,32 @@ void Chord::request_handler()
 	std::cout << " Request Processor killed!\n";
 }
 
+void Chord::handle_join(const Request& req, const std::string& ip,
+		unsigned short port)
+{
+	std::cout <<"JOIN: " <<  ip << ":" << port << "| " << req.content() << '\n';
+	// Finding position in the ring
+	Hash client_hash(req.content());
+
+	if (client_hash  < m_uid_hash)
+	{
+		std::cout << " Client is behind us\n";
+	}
+	else
+	{
+		std::cout << " Client is ahead of us\n";
+	}
+}
 
 // Heart Stuff
 
 void Chord::pulse()
 {
 	std::cout << " ** thump **\n";
-
 }
 void Chord::heartBeat()
 {
-	while (!m_dead)
-	{
-		pulse();
-		usleep(m_heartbeat * 1000);
-	}
+	while (!m_dead) { pulse(); usleep(m_heartbeat * 1000); }
 }
 
 

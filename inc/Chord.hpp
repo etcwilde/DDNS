@@ -22,7 +22,7 @@
 #include "Socket.hpp"
 
 #define CHORD_DEFAULT_PORT 1994 	// Default connection port if no port supplied
-#define CHORD_DEFAULT_HEART_BEAT 1000 	// Ping every 1 seconds
+#define CHORD_DEFAULT_HEART_BEAT 3000 	// Ping every 3 seconds
 #define CHORD_DEFAULT_RESILLIANCY 3 	// Three pulse misses and it is dead
 #define CHORD_DEFAULT_NODES_EXPONENT 3  // Chord ring size is 3
 #define CHORD_DEFAULT_TABLE_SIZE 512	// 512 items can be stored on a single node
@@ -38,14 +38,16 @@
 // We store the information about or neighbors
 //
 
+
+
 namespace ChordDHT
 {
 	class Chord : public DistributedHashTable
 	{
-
 	// DHT stuff -- This is the interface for the hash table
 	public:
-		Chord(unsigned int global_exponent=CHORD_DEFAULT_NODES_EXPONENT,
+		Chord(std::string uid,
+				unsigned int global_exponent=CHORD_DEFAULT_NODES_EXPONENT,
 				unsigned long local_size=CHORD_DEFAULT_TABLE_SIZE);
 		~Chord();
 
@@ -66,22 +68,39 @@ namespace ChordDHT
 	// Chord Stuff -- Interface with the networking side
 	public:
 		void create(unsigned short port=CHORD_DEFAULT_PORT);
+		// Join a
 		void join(const std::string& host_ip,
 				unsigned short host_port=CHORD_DEFAULT_PORT,
 				unsigned short my_port=CHORD_DEFAULT_PORT);
 	protected:
-		void handle_join(const std::string& ip, unsigned short port);
-		void handle_get(const std::string& ip, unsigned int port,
-				const Hash& key);
-		void handle_set(const std::string& ip, unsigned int port,
-				const Hash& key, std::string value);
-		void handle_drop();
+
+		// Data passers
+		// Passes the join request to the next best node in the ring
+		void pass_join(const Request& req);
+
+		void pass_get(const Request& req);
+
+		void pass_set(const Request& req);
+
+		void pass_drop(const Request& req);
+
+
+
+		// Request handlers
+		void handle_join(const Request& req, const std::string& ip,
+				unsigned short port);
+		void handle_get(const Request& req, const std::string& ip,
+				unsigned short port, const Hash& key);
+		void handle_set(const Request& req, const std::string& ip, unsigned short port);
+		void handle_drop(const Request& req);
 
 	private:
 		void request_handler();
 		unsigned short m_port;
 		std::vector<std::thread> m_handler_threads;
 		UDPSocket* m_primary_socket;
+		std::string m_uid;
+		Hash m_uid_hash;
 
 	// Heartbeat stuff
 	protected:
@@ -96,6 +115,21 @@ namespace ChordDHT
 
 	// Networking Stuff
 	private:
+		typedef struct
+		{
+			bool set;
+			std::string ip_address;
+			unsigned short port_number;
+
+			Hash uid_hash;
+			double heartbeat;
+			unsigned int resiliancy;
+			bool dead;
+		} neighbor_t;
+
+		neighbor_t m_successor;
+		neighbor_t m_predecessor;
+
 
 	};
 };
