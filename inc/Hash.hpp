@@ -51,6 +51,22 @@ public:
 		return 0;
 	}
 
+	bool between(const Hash& smaller, const Hash& larger)
+	{
+		int small_large = smaller.compareTo(larger);
+		if (small_large < 0)
+		{
+			if (compareTo(smaller) > 0 && compareTo(larger) < 0)
+				return true;
+		}
+		else if (small_large > 0) // small and large are reversed
+		{
+			if (compareTo(larger) < 0 || compareTo(smaller) > 0)
+				return true;
+		}
+		return false;
+	}
+
 	inline bool operator<(const Hash& other) const
 	{ return compareTo(other) < 0; }
 
