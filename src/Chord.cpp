@@ -20,7 +20,6 @@ Chord::Chord(std::string uid, uint global_exponent, ulong local_size):
 {
 	m_dead = false;
 	m_successor.set = false;
-	//m_predecessor.set = false;
 	m_heartbeat = CHORD_DEFAULT_HEART_BEAT;
 	m_heart = std::thread(&Chord::heartBeat, this);
 	std::cout << "Starting Chord\n";
@@ -31,12 +30,9 @@ Chord::Chord::~Chord()
 	std::cout << "Ending Chord\n";
 	m_dead = true;
 	m_heart.join();
-
 	m_primary_socket->shutdown();
-
 	for (unsigned int i = 0; i < CHORD_DEFAULT_HANDLER_THREADS; ++i)
 		m_handler_threads[i].join();
-
 	if (m_primary_socket) delete m_primary_socket;
 }
 
@@ -109,6 +105,7 @@ void Chord::request_handler()
 		unsigned short client_port;
 		m_primary_socket->read(message, client_ip, client_port);
 		if (m_dead) break;
+		std::cout << "Message received from: " << client_ip << ":" << client_port << '\n';
 		current_request.ParseFromString(message);
 		switch(current_request.type())
 		{
@@ -151,37 +148,75 @@ void Chord::request_handler()
 void Chord::handle_join(const Request& req, const std::string& ip,
 		unsigned short port)
 {
-	std::cout <<"JOIN: " <<  ip << ":" << port << "| " << req.content() << '\n';
+	std::cout <<"JOIN: " <<  ip << ":" << port << "| " << Hash(req.content(), true).toString() << '\n';
 
 	Hash client_hash(req.content(), true);
-	std::cout << m_uid_hash.toString() << '\n';
-	std::cout << client_hash.toString() << '\n';
-	std::cout << client_hash.compareTo(m_uid_hash) << '\n';
-
+	//std::cout << m_uid_hash.toString() << '\n';
+	//std::cout << client_hash.toString() << '\n';
+	//std::cout << client_hash.compareTo(m_uid_hash) << '\n';
 
 	if (client_hash.compareTo(m_uid_hash) == 0)
 	{
+		std::cout << client_hash.toString() << " : " << m_uid_hash.toString() << '\n';
 		std::cout << " This ID already exists\n";
 	}
 	else if (!m_successor.set)
 	{
 		std::cout << " This node is now our successor\n";
-		m_successor.set = true;
-		m_successor.peer.ip_address = ip;
-		m_successor.peer.port_number = port;
-		m_successor.peer.uid_hash = client_hash;
-		return;
+		if (!req.pass())
+		{
+			m_successor.set = true;
+			m_successor.peer.ip_address = ip;
+			m_successor.peer.port_number = port;
+			m_successor.peer.uid_hash = client_hash;
+		}
+		else
+		{
+			m_successor.set = true;
+			m_successor.peer.ip_address = req.ip();
+			m_successor.peer.port_number = req.port();
+			m_successor.peer.uid_hash = client_hash;
+		}
 	}
 	else if (client_hash.between(m_uid_hash, m_successor.peer.uid_hash))
 	{
+		std::cout << " " << ip << ":" << port << " is between\n";
 		// The node goes between me and my successor
-		std::cout << " This should be my new successor but I haven't implemented it yet\n";
+
+		// We need to set our successors successor the our old
+		// successor
+		//
+
+		// Store old successor
+		// Replace sucessor
+		// Join old sucessor with new successor Node
+		// It won't have a sucessor, so it will go ahead and add it
+		// This seems dangerous but lets try it
+
 		// Process here
+
+		// Store old sucessor
+		Peer old_sucessor = m_successor.peer;
+		// Update sucessor
+		m_successor.peer.ip_address = ip;
+		m_successor.peer.port_number = port;
+		m_successor.peer.uid_hash = client_hash;
+
+		// JOIN old sucessor to new successor
+		Request pass_forward;
+		pass_forward.set_id(old_sucessor.uid_hash.toString());
+		pass_forward.set_content(old_sucessor.uid_hash.raw());
+		pass_forward.set_pass(true);
+		pass_forward.set_ip(old_sucessor.ip_address);
+		pass_forward.set_port(old_sucessor.port_number);
+		std::string forward_message;
+		pass_forward.SerializeToString(&forward_message);
+		m_primary_socket->write(forward_message, m_successor.peer.ip_address,
+				m_successor.peer.port_number);
 	}
 	else
 	{
-		std::cout << " This goes somewhere else in the ring, but I haven't implemented it yet\n";
-		// Pass forward
+		// Pass forward one hop O(N) join
 		Request pass_forward;
 		pass_forward.set_id(client_hash.toString());
 		pass_forward.set_content(client_hash.raw());
@@ -193,17 +228,23 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 		pass_forward.SerializeToString(&forward_message);
 		m_primary_socket->write(forward_message, m_successor.peer.ip_address, m_successor.peer.port_number);
 	}
+	std::cout << "Successor: " << m_successor.peer.ip_address << ":" <<
+		m_successor.peer.port_number << " "
+		<< m_successor.peer.uid_hash.toString() << '\n';
+}
 
-	/*
-	if (client_hash  < m_uid_hash)
+void Chord::handle_drop(const Request& req, const std::string& ip,
+		unsigned short port)
+{
+	if (!m_successor.set)
 	{
-		std::cout << " Client is behind us\n";
+		std::cout << " Error: Drop request, but we don't know who\n";
+		return;
 	}
 	else
 	{
-		std::cout << " Client is ahead of us\n";
+		std::cout << " Drop request handled... Once I figure out what I'm doing\n";
 	}
-	*/
 }
 
 // Heart Stuff

@@ -92,7 +92,7 @@ namespace ChordDHT
 		void handle_get(const Request& req, const std::string& ip,
 				unsigned short port, const Hash& key);
 		void handle_set(const Request& req, const std::string& ip, unsigned short port);
-		void handle_drop(const Request& req);
+		void handle_drop(const Request& req, const std::string& ip, unsigned short port);
 
 	private:
 		void request_handler();

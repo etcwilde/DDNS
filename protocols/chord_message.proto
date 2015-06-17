@@ -1,4 +1,5 @@
 package ChordDHT;
+
 message Request
 {
 	required string id = 1;
@@ -14,6 +15,7 @@ message Request
 		GET = 2; // Get value from chord
 		SET = 3; // Set value in chord
 		SYNC = 4; // Stabilizing communications
+		UPDATE = 5; // Update key/value
 	}
 
 	required RequestType type = 6 [default = JOIN];
