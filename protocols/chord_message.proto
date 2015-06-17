@@ -2,7 +2,11 @@ package ChordDHT;
 message Request
 {
 	required string id = 1;
-	optional string content = 2; // Maybe make this repeated?
+	optional bytes content = 2; // Maybe make this repeated?
+	optional bool pass = 3 [default = false]; //Passing content forward
+	optional string ip = 4 [default = ""]; //Don't lose original source
+	optional int32 port = 5 [default = 0]; //Don't lose original source
+
 	enum RequestType
 	{
 		JOIN = 0; // Join chord ring
@@ -12,5 +16,5 @@ message Request
 		SYNC = 4; // Stabilizing communications
 	}
 
-	required RequestType type = 3 [default = JOIN];
+	required RequestType type = 6 [default = JOIN];
 }
