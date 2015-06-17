@@ -19,6 +19,8 @@ Chord::Chord(std::string uid, uint global_exponent, ulong local_size):
 	m_uid_hash(Hash(uid))
 {
 	m_dead = false;
+	m_successor.set = false;
+	//m_predecessor.set = false;
 	m_heartbeat = CHORD_DEFAULT_HEART_BEAT;
 	m_heart = std::thread(&Chord::heartBeat, this);
 	std::cout << "Starting Chord\n";
@@ -87,7 +89,7 @@ void Chord::join(const std::string& host_ip,
 	// be unique for nodes on the same machine
 	Hash my_hash(std::to_string(my_port));
 	join_request.set_id(my_hash.toString());
-	join_request.set_content(m_uid_hash.toString());
+	join_request.set_content(m_uid_hash.raw());
 	join_request.set_type(Request::JOIN);
 	join_request.SerializeToString(&join_message);
 	m_primary_socket->write(join_message, host_ip, host_port);
@@ -98,7 +100,6 @@ void Chord::join(const std::string& host_ip,
 void Chord::request_handler()
 {
 	std::cout << " Request Processor made!\n";
-
 	while (m_primary_socket == NULL) {} //Spin lock
 	while (!m_dead)
 	{
@@ -151,9 +152,49 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 		unsigned short port)
 {
 	std::cout <<"JOIN: " <<  ip << ":" << port << "| " << req.content() << '\n';
-	// Finding position in the ring
-	Hash client_hash(req.content());
 
+	Hash client_hash(req.content(), true);
+	std::cout << m_uid_hash.toString() << '\n';
+	std::cout << client_hash.toString() << '\n';
+	std::cout << client_hash.compareTo(m_uid_hash) << '\n';
+
+
+	if (client_hash.compareTo(m_uid_hash) == 0)
+	{
+		std::cout << " This ID already exists\n";
+	}
+	else if (!m_successor.set)
+	{
+		std::cout << " This node is now our successor\n";
+		m_successor.set = true;
+		m_successor.peer.ip_address = ip;
+		m_successor.peer.port_number = port;
+		m_successor.peer.uid_hash = client_hash;
+		return;
+	}
+	else if (client_hash.between(m_uid_hash, m_successor.peer.uid_hash))
+	{
+		// The node goes between me and my successor
+		std::cout << " This should be my new successor but I haven't implemented it yet\n";
+		// Process here
+	}
+	else
+	{
+		std::cout << " This goes somewhere else in the ring, but I haven't implemented it yet\n";
+		// Pass forward
+		Request pass_forward;
+		pass_forward.set_id(client_hash.toString());
+		pass_forward.set_content(client_hash.raw());
+		pass_forward.set_pass(true);
+		pass_forward.set_ip(ip);
+		pass_forward.set_port(port);
+		pass_forward.set_type(Request::JOIN);
+		std::string forward_message;
+		pass_forward.SerializeToString(&forward_message);
+		m_primary_socket->write(forward_message, m_successor.peer.ip_address, m_successor.peer.port_number);
+	}
+
+	/*
 	if (client_hash  < m_uid_hash)
 	{
 		std::cout << " Client is behind us\n";
@@ -162,17 +203,18 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 	{
 		std::cout << " Client is ahead of us\n";
 	}
+	*/
 }
 
 // Heart Stuff
 
 void Chord::pulse()
 {
-	std::cout << " ** thump **\n";
+	//std::cout << " ** thump **\n";
 }
 void Chord::heartBeat()
 {
-	while (!m_dead) { pulse(); usleep(m_heartbeat * 1000); }
+	//while (!m_dead) { pulse(); usleep(m_heartbeat * 1000); }
 }
 
 

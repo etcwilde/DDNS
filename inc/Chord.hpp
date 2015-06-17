@@ -15,11 +15,12 @@
 #include <iostream>
 
 #include <unistd.h>
-
+#include <string.h>
 
 #include "HashTable.hpp"
 #include "chord_message.pb.h"
 #include "Socket.hpp"
+#include "Peer.hpp"
 
 #define CHORD_DEFAULT_PORT 1994 	// Default connection port if no port supplied
 #define CHORD_DEFAULT_HEART_BEAT 3000 	// Ping every 3 seconds
@@ -29,6 +30,8 @@
 //#define CHORD_DEFAULT_HANDLER_THREADS 3	// Uses 3 threads for handling by default
 #define CHORD_DEFAULT_HANDLER_THREADS 1
 
+#define CHORD_DEFAULT_SIZE 8 		// Number of nodes (low for testing)
+
 // We use a heartbeat to determine if the node is still alive. When three
 // pulses are missed, the node is dead and should be removed from the chord
 // ring
@@ -37,8 +40,6 @@
 
 // We store the information about or neighbors
 //
-
-
 
 namespace ChordDHT
 {
@@ -85,7 +86,6 @@ namespace ChordDHT
 		void pass_drop(const Request& req);
 
 
-
 		// Request handlers
 		void handle_join(const Request& req, const std::string& ip,
 				unsigned short port);
@@ -118,19 +118,19 @@ namespace ChordDHT
 		typedef struct
 		{
 			bool set;
-			std::string ip_address;
-			unsigned short port_number;
+			Peer peer;
+			//std::string ip_address;
+			//unsigned short port_number;
 
-			Hash uid_hash;
+			//Hash uid_hash;
 			double heartbeat;
 			unsigned int resiliancy;
 			bool dead;
 		} neighbor_t;
 
 		neighbor_t m_successor;
-		neighbor_t m_predecessor;
-
-
+		//neighbor_t m_predecessor; // Can we get away with not having
+		//a predecessor? -- Singly-circularly linked list style?
 	};
 };
 
