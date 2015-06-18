@@ -258,11 +258,33 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 	else
 	{
 		std::cout << " Forward JOIN: ";
+		Request join_request;
+		std::string join_message;
+		join_request.set_id(client_hash.raw());
+		join_request.set_type(Request::JOIN);
+		join_request.set_pass(true);
 		if (req.pass() == true)
+		{
+			join_request.set_ip(req.ip());
+			join_request.set_port(req.port());
+			std::cout << "forwarded\n";
+		}
+		else
+		{
+			join_request.set_ip(ip);
+			join_request.set_port(port);
+			std::cout << "direct\n";
+		}
+
+		join_request.SerializeToString(&join_message);
+		m_primary_socket->write(join_message, m_successor.peer.ip,
+				m_successor.peer.port);
+
+
+		/*if (req.pass() == true)
 		{
 			std::cout << "passed\n";
 			// I think that this is a node that we don't
-			std::cerr << " ------ NOT IMPLEMENTED2!!! ------\n";
 			Request join_request;
 			std::string join_message;
 
@@ -297,7 +319,7 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 			join_request.SerializeToString(&join_message);
 			m_primary_socket->write(join_message, m_successor.peer.ip,
 					m_successor.peer.port);
-		}
+		} */
 	}
 }
 

@@ -74,18 +74,6 @@ namespace ChordDHT
 				unsigned short host_port=CHORD_DEFAULT_PORT,
 				unsigned short my_port=CHORD_DEFAULT_PORT);
 	protected:
-
-		// Data passers
-		// Passes the join request to the next best node in the ring
-		void pass_join(const Request& req);
-
-		void pass_get(const Request& req);
-
-		void pass_set(const Request& req);
-
-		void pass_drop(const Request& req);
-
-
 		// Request handlers
 		void handle_join(const Request& req, const std::string& ip,
 				unsigned short port);
