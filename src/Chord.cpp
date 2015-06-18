@@ -103,10 +103,8 @@ void Chord::request_handler()
 		std::string message;
 		std::string client_ip;
 		unsigned short client_port;
-		std::cout << "Waiting for message...\n";
 		m_primary_socket->read(message, client_ip, client_port);
 		if (m_dead) break;
-		std::cout << "Message received from: " << client_ip << ":" << client_port << '\n';
 		current_request.ParseFromString(message);
 		switch(current_request.type())
 		{
@@ -150,12 +148,23 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 		unsigned short port)
 {
 	Hash client_hash(req.id(), true);
-	std::cout << "(cli)" << client_hash.toString()
-			<< " : (host)" << m_uid_hash.toString() << '\n';
-
 	if (client_hash.compareTo(m_uid_hash) == 0)
 	{
 		std::cout << " This ID already exists\n";
+		// We should actually send some response to the node so that it
+		// knows that we didn't even try to send it
+		if (req.pass() == true)
+		{
+			std::cout << " Duplicate: " << req.ip() << ":"
+				<< req.port() << " | "
+				<< client_hash.toString() << '\n';
+		}
+		else
+		{
+			std::cout << " Duplicate: " << ip << ":"
+				<< port << " | "
+				<< client_hash.toString() << '\n';
+		}
 	}
 	else if (!m_successor.set)
 	{
@@ -194,62 +203,35 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 			join_request.SerializeToString(&join_message);
 			m_primary_socket->write(join_message, m_successor.peer.ip,
 					m_successor.peer.port);
-			std::cout << "Successor: " << m_successor.peer.ip << ":" <<
-				m_successor.peer.port << " "
-				<< m_successor.peer.uid_hash.toString() << '\n';
 			m_successor.set = true;
 		}
 	}
 	else if (client_hash.between(m_uid_hash, m_successor.peer.uid_hash))
 	{
+		Peer old_successor;
+		old_successor.ip = m_successor.peer.ip;
+		old_successor.port = m_successor.peer.port;
+		old_successor.uid_hash = m_successor.peer.uid_hash;
 
-		std::cout << " Between my successor and me: ";
+		Request join_request;
+		std::string join_message;
+		join_request.set_type(Request::JOIN);
+		join_request.set_pass(true);
+		join_request.set_ip(old_successor.ip);
+		join_request.set_port(old_successor.port);
+		join_request.set_id(old_successor.uid_hash.raw());
+		join_request.SerializeToString(&join_message);
 		if (req.pass() == true)
 		{
-			std::cout << "pass\n";
-			Peer old_successor;
-			old_successor.ip = m_successor.peer.ip;
-			old_successor.port = m_successor.peer.port;
-			old_successor.uid_hash = m_successor.peer.uid_hash;
-
-			// Joing old successor to new successor
-			Request join_request;
-			std::string join_message;
-			join_request.set_id(old_successor.uid_hash.raw());
-			join_request.set_type(Request::JOIN);
-			join_request.set_pass(true);
-			join_request.set_ip(old_successor.ip);
-			join_request.set_port(old_successor.port);
-			join_request.SerializeToString(&join_message);
-			m_primary_socket->write(join_message,
-					req.ip(), req.port());
+			m_primary_socket->write(join_message, req.ip(),
+					req.port());
 			m_successor.peer.ip = req.ip();
 			m_successor.peer.port = req.port();
 			m_successor.peer.uid_hash = Hash(req.id(), true);
 		}
 		else
 		{
-			std::cout << "direct\n";
-			Peer old_successor;
-
-			old_successor.ip = m_successor.peer.ip;
-			old_successor.port = m_successor.peer.port;
-			old_successor.uid_hash = m_successor.peer.uid_hash;
-
-			// Join our old successor the the new successor
-			Request join_request;
-			std::string join_message;
-			join_request.set_id(old_successor.uid_hash.raw());
-			join_request.set_type(Request::JOIN);
-			join_request.set_pass(true);
-			join_request.set_ip(old_successor.ip);
-			join_request.set_port(old_successor.port);
-
-			join_request.SerializeToString(&join_message);
-			std::cout << "Sending Join Message for my old successor to: "
-				<< ip << ":" << port << '\n';
 			m_primary_socket->write(join_message, ip, port);
-
 			m_successor.peer.ip = ip;
 			m_successor.peer.port = port;
 			m_successor.peer.uid_hash = client_hash;
@@ -257,7 +239,7 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 	}
 	else
 	{
-		std::cout << " Forward JOIN: ";
+		//std::cout << " Forward JOIN: ";
 		Request join_request;
 		std::string join_message;
 		join_request.set_id(client_hash.raw());
@@ -280,47 +262,10 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 		m_primary_socket->write(join_message, m_successor.peer.ip,
 				m_successor.peer.port);
 
-
-		/*if (req.pass() == true)
-		{
-			std::cout << "passed\n";
-			// I think that this is a node that we don't
-			Request join_request;
-			std::string join_message;
-
-			join_request.set_id(client_hash.raw());
-			join_request.set_ip(req.ip());
-			join_request.set_port(req.port());
-			join_request.set_type(Request::JOIN);
-			join_request.set_pass(true);
-			join_request.SerializeToString(&join_message);
-			m_primary_socket->write(join_message,
-					m_successor.peer.ip,
-					m_successor.peer.port);
-		}
-		else
-		{
-			std::cout << "direct\n";
-
-			// We will pass the request forward to our successor
-			// This may create an infinite loop (Actually, it probably will
-			// just watch)
-
-			std::cout << " Hash(host):(client): " << m_uid_hash.toString() << ":" <<
-				client_hash.toString() << '\n';
-
-			Request join_request;
-			std::string join_message;
-			join_request.set_id(client_hash.raw());
-			join_request.set_ip(ip);
-			join_request.set_port(port);
-			join_request.set_pass(true);
-			join_request.set_type(Request::JOIN);
-			join_request.SerializeToString(&join_message);
-			m_primary_socket->write(join_message, m_successor.peer.ip,
-					m_successor.peer.port);
-		} */
 	}
+	std::cout << " (host)(successor): " << m_uid_hash.toString()
+		<< " | "
+		<< m_successor.peer.uid_hash.toString() << '\n';
 }
 
 void Chord::handle_drop(const Request& req, const std::string& ip,
@@ -341,11 +286,10 @@ void Chord::handle_drop(const Request& req, const std::string& ip,
 
 void Chord::pulse()
 {
-	std::cout << " ** thump **\n";
-	std::cout << "(succ)" << m_successor.peer.uid_hash.toString()
-	       << " : (host)" << m_uid_hash.toString() << '\n';
-	std::cout << " ** thump **\n";
-
+	/*	std::cout << " ** thump **\n";
+		std::cout << "(succ)" << m_successor.peer.uid_hash.toString()
+		<< " : (host)" << m_uid_hash.toString() << '\n';
+		std::cout << " ** thump **\n"; */
 }
 void Chord::heartBeat()
 {
