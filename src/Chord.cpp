@@ -63,12 +63,9 @@ void Chord::create(unsigned short port)
 {
 	std::cout << "Creating Chord Node\n";
 	m_port = port;
-	// Cool maybe spin up a thread to listen for friends?
 	for (unsigned int i = 0; i < CHORD_DEFAULT_HANDLER_THREADS; ++i)
-	{
 		m_handler_threads.push_back(
 				std::thread(&Chord::request_handler, this));
-	}
 	m_primary_socket = new UDPSocket(port);
 }
 
@@ -81,11 +78,7 @@ void Chord::join(const std::string& host_ip,
 	// Now send join request
 	Request join_request;
 	std::string join_message;
-	// TODO: Use a thing specific to this node, the port number will only
-	// be unique for nodes on the same machine
-	//Hash my_hash(std::to_string(my_port));
 	join_request.set_id(m_uid_hash.raw());
-	//join_request.set_content(m_uid_hash.raw());
 	join_request.set_type(Request::JOIN);
 	join_request.SerializeToString(&join_message);
 	m_primary_socket->write(join_message, host_ip, host_port);
@@ -95,7 +88,6 @@ void Chord::join(const std::string& host_ip,
 // Request handling
 void Chord::request_handler()
 {
-	//std::cout << " Request Processor made!\n";
 	while (m_primary_socket == NULL) {} //Spin lock
 	while (!m_dead)
 	{
@@ -110,8 +102,8 @@ void Chord::request_handler()
 		{
 			case Request::JOIN:
 				{
-					handle_join(current_request,
-							client_ip, client_port);
+					handle_join(current_request, client_ip,
+						       	client_port);
 					break;
 				}
 			case Request::DROP:
@@ -131,7 +123,8 @@ void Chord::request_handler()
 				}
 			case Request::SYNC:
 				{
-					std::cout << "SYNC REQUEST\n";
+					handle_sync(current_request, client_ip, 
+							client_port);
 					break;
 				}
 			default:
@@ -263,11 +256,13 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 				m_successor.peer.port);
 
 	}
+	/*
 	std::cout << " (host)(successor): " << m_uid_hash.toString()
 		<< " | "
-		<< m_successor.peer.uid_hash.toString() << '\n';
+		<< m_successor.peer.uid_hash.toString() << '\n'; */
 }
 
+// Do we need this?
 void Chord::handle_drop(const Request& req, const std::string& ip,
 		unsigned short port)
 {
@@ -282,14 +277,66 @@ void Chord::handle_drop(const Request& req, const std::string& ip,
 	}
 }
 
+/**
+ * This will always be directly from our predecessor or successor
+ * We will use the pass flag as a way of determining if it is a response
+ */
+void Chord::handle_sync(const Request& req, const std::string& ip,
+		unsigned short port)
+{
+	std::cout << "sync request\n";
+	// It is a response keep our successor alive
+	if (req.pass() == true)
+	{
+		std::cout << " successor is still alive\n";
+		m_successor.missed = false;
+	}
+	else // It is a request, generate reponse
+	{
+		std::cout << " heartbeat test\n";
+		/*Request sync_request;
+		std::string sync_message;
+
+
+		sync_request.SerializeToString(&sync_message);
+		m_primary_socket->write(sync_message, ip, port); */
+	}
+}
+
+
 // Heart Stuff
 
 void Chord::pulse()
 {
-	/*	std::cout << " ** thump **\n";
-		std::cout << "(succ)" << m_successor.peer.uid_hash.toString()
-		<< " : (host)" << m_uid_hash.toString() << '\n';
-		std::cout << " ** thump **\n"; */
+	if (m_successor.set)
+	{
+		// Generate SYNC request
+		Request sync_request;
+		std::string sync_message;
+		sync_request.set_id(m_uid_hash.raw());
+		sync_request.set_pass(false);
+		sync_request.set_type(Request::SYNC);
+
+		sync_request.SerializeToString(&sync_message);
+		m_primary_socket->write(sync_message, m_successor.peer.ip,
+				m_successor.peer.port);
+
+		if (m_successor.missed == false) m_successor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
+		else if (m_successor.resiliancy == 0)
+		{
+			// Disconnect from our successor, it is dead
+			m_successor.set = false;
+			std::cout << " He's dead, Jim!\n";
+		}
+		else m_successor.resiliancy--;
+		m_successor.missed = true;
+		std::cout << " Successor life force: " << m_successor.resiliancy << '\n';
+
+		/*	std::cout << " ** thump **\n";
+			std::cout << "(succ)" << m_successor.peer.uid_hash.toString()
+			<< " : (host)" << m_uid_hash.toString() << '\n';
+			std::cout << " ** thump **\n"; */
+	}
 }
 void Chord::heartBeat()
 {

@@ -81,6 +81,7 @@ namespace ChordDHT
 				unsigned short port, const Hash& key);
 		void handle_set(const Request& req, const std::string& ip, unsigned short port);
 		void handle_drop(const Request& req, const std::string& ip, unsigned short port);
+		void handle_sync(const Request& req, const std::string& ip, unsigned short port);
 
 	private:
 		void request_handler();
@@ -113,6 +114,7 @@ namespace ChordDHT
 			//Hash uid_hash;
 			double heartbeat;
 			unsigned int resiliancy;
+			bool missed; // Did it miss the last beat?
 			bool dead;
 		} neighbor_t;
 
