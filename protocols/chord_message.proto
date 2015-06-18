@@ -2,7 +2,7 @@ package ChordDHT;
 
 message Request
 {
-	required string id = 1;
+	required bytes id = 1;
 	optional bytes content = 2; // Maybe make this repeated?
 	optional bool pass = 3 [default = false]; //Passing content forward
 	optional string ip = 4 [default = ""]; //Don't lose original source

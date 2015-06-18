@@ -5,8 +5,8 @@ namespace ChordDHT
 	class Peer
 	{
 	public:
-		std::string ip_address;
-		unsigned short port_number;
+		std::string ip;
+		unsigned short port;
 
 		Hash uid_hash;
 	private:
