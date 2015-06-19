@@ -84,6 +84,9 @@ class Hash
 		inline bool operator==(const Hash& other) const
 		{ return compareTo(other) == 0; }
 
+		inline bool operator!=(const Hash& other) const
+		{ return compareTo(other) != 0; }
+
 		inline bool operator<= (const Hash& other) const
 		{ return compareTo(other) <= 0; }
 
