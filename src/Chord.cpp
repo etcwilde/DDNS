@@ -20,7 +20,11 @@ Chord::Chord(std::string uid, uint global_exponent, ulong local_size):
 {
 	m_dead = false;
 	m_successor.set = false;
-	m_heartbeat = CHORD_DEFAULT_HEART_BEAT;
+	m_successor.heartbeat = CHORD_DEFAULT_HEART_BEAT;
+	m_successor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
+	m_successor.missed = false;
+	m_old_successor.set = false;
+
 	m_heart = std::thread(&Chord::heartBeat, this);
 	std::cout << "Starting Chord\n";
 }
@@ -212,6 +216,24 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 		old_successor.port = m_successor.peer.port;
 		old_successor.uid_hash = m_successor.peer.uid_hash;
 
+		if (client_hash != m_successor.peer.uid_hash)
+		{
+			// Update m_old_successor
+			m_old_successor.set = true; // I think...
+			m_old_successor.peer.ip = m_successor.peer.ip;
+			m_old_successor.peer.port = m_successor.peer.port;
+			m_old_successor.peer.uid_hash = m_successor.peer.uid_hash;
+			m_old_successor.missed = false;
+		}
+		else
+		{
+			// This is our other node, it might be faulty
+			// Lets increase the heart rate (This might be a bad
+			// idea)
+			m_old_successor.heartbeat /= 2;
+		}
+
+
 		Request join_request;
 		std::string join_message;
 		join_request.set_type(Request::JOIN);
@@ -238,7 +260,6 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 	}
 	else
 	{
-		//std::cout << " Forward JOIN: ";
 		Request join_request;
 		std::string join_message;
 		join_request.set_id(client_hash.raw());
@@ -261,27 +282,10 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 				m_successor.peer.port);
 
 	}
-
-	/*std::cout << m_uid_hash.toString()
-		<< "  "
-		<< m_successor.peer.uid_hash.toString() << '\n'; */
-	std::cout << m_successor.peer.uid_hash.toString() << " <- " <<
-		m_uid_hash.toString() << '\n';
-}
-
-// Do we need this?
-void Chord::handle_drop(const Request& req, const std::string& ip,
-		unsigned short port)
-{
-	if (!m_successor.set)
-	{
-		std::cout << " Error: Drop request, but we don't know who\n";
-		return;
-	}
-	else
-	{
-		std::cout << " Drop request handled... Once I figure out what I'm doing\n";
-	}
+	if (m_successor.set)
+		std::cout << m_successor.peer.uid_hash.toString()
+			<< " <- " <<
+			m_uid_hash.toString() << '\n';
 }
 
 /**
@@ -291,12 +295,8 @@ void Chord::handle_drop(const Request& req, const std::string& ip,
 void Chord::handle_sync(const Request& req, const std::string& ip,
 		unsigned short port)
 {
-	// It is a response keep our successor alive
-	if (req.pass() == true)
-	{
-		m_successor.missed = false;
-	}
-	else // It is a request, generate reponse
+	if (req.pass() == true) m_successor.missed = false;
+	else
 	{
 		Request sync_request;
 		std::string sync_message;
@@ -328,9 +328,26 @@ void Chord::pulse()
 		if (m_successor.missed == false) m_successor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
 		else if (m_successor.resiliancy == 0)
 		{
-			m_successor.set = false;
-			std::cout << " He's dead, Jim\n";
-			m_successor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
+
+			if (m_old_successor.set = true)
+			{
+				m_successor.peer.ip = m_old_successor.peer.ip;
+				m_successor.peer.port = m_old_successor.peer.port;
+				m_successor.peer.uid_hash = m_old_successor.peer.uid_hash;
+				m_successor.set = true;
+				m_old_successor.set = false;
+
+				std::cout
+					<< m_successor.peer.uid_hash.toString()
+					<< " <- " <<
+					m_uid_hash.toString() << '\n';
+
+			}
+			else
+			{
+				std::cout << " The chain may have failed\n";
+				m_successor.set = false;
+			}
 		}
 		else
 		{
@@ -339,16 +356,10 @@ void Chord::pulse()
 		}
 		m_successor.missed = true;
 	}
-	else
-	{
-		std::cout << "No successor\n "
-			<< m_successor.missed << " : " << m_successor.resiliancy << '\n';
-
-	}
 }
 void Chord::heartBeat()
 {
-	while (!m_dead) { pulse(); usleep(m_heartbeat * 1000); }
+	while (!m_dead) { pulse(); usleep(m_successor.heartbeat * 1000); }
 }
 
 

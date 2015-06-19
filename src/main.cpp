@@ -18,7 +18,6 @@
 
 int main(int argc, const char* argv[])
 {
-
 	std::string client_ip;
 	unsigned short client_port;
 	std::string host_name;
@@ -37,6 +36,7 @@ int main(int argc, const char* argv[])
 
 	ChordDHT::Chord chord_test(host_name);
 
+
 	// We are alone in the world, we just sit here and be quite
 	if (argc == 3)
 	{
@@ -51,6 +51,5 @@ int main(int argc, const char* argv[])
 	std::cout << " Hit Return to exit\n";
 	std::string something;
 	std::getline(std::cin, something);
-	//std::cin >> something;
 	return 0;
 }

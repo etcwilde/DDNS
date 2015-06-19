@@ -80,7 +80,6 @@ namespace ChordDHT
 		void handle_get(const Request& req, const std::string& ip,
 				unsigned short port, const Hash& key);
 		void handle_set(const Request& req, const std::string& ip, unsigned short port);
-		void handle_drop(const Request& req, const std::string& ip, unsigned short port);
 		void handle_sync(const Request& req, const std::string& ip, unsigned short port);
 
 	private:
@@ -97,30 +96,31 @@ namespace ChordDHT
 
 	private:
 		void heartBeat();
-		double m_heartbeat;
 		unsigned int m_resiliancy;
 		bool m_dead;
 		std::thread m_heart;
 
 	// Networking Stuff
 	private:
+		/*
+		 * neighbor_t
+		 * fields:
+		 * 	set : Is the information in this structure valid
+		 * 	missed: did the node miss the last beat?
+		 * 	heartbeat: how often the neighbor needs to be queried
+		 * 	resiliancy: how much life is left on the neighbor
+		 * 	peer: A container for the ip, port number, and hash
+		 */
 		typedef struct
 		{
 			bool set;
-			Peer peer;
-			//std::string ip_address;
-			//unsigned short port_number;
-
-			//Hash uid_hash;
-			double heartbeat;
+			bool missed;
 			unsigned int resiliancy;
-			bool missed; // Did it miss the last beat?
-			bool dead;
+			double heartbeat;
+			Peer peer;
 		} neighbor_t;
-
 		neighbor_t m_successor;
-		//neighbor_t m_predecessor; // Can we get away with not having
-		//a predecessor? -- Singly-circularly linked list style?
+		neighbor_t m_old_successor;
 	};
 };
 
