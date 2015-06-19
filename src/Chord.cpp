@@ -102,36 +102,39 @@ void Chord::request_handler()
 		{
 			case Request::JOIN:
 				{
+					std::cout << "JOIN REQUEST\n";
 					handle_join(current_request, client_ip,
-						       	client_port);
-					break;
+							client_port);
 				}
+				break;
 			case Request::DROP:
 				{
 					std::cout << "DROP REQUEST\n";
-					break;
 				}
+				break;
 			case Request::GET:
 				{
 					std::cout << "GET REQUEST\n";
-					break;
 				}
+
+				break;
 			case Request::SET:
 				{
 					std::cout << "SET REQUEST\n";
-					break;
 				}
+				break;
 			case Request::SYNC:
 				{
-					handle_sync(current_request, client_ip, 
+					handle_sync(current_request, client_ip,
 							client_port);
-					break;
 				}
+				break;
 			default:
 				{
 					std::cerr <<"Request Protocol Error\n";
-					break;
 				}
+
+				break;
 		}
 	}
 	std::cout << " Request Processor killed!\n";
@@ -150,13 +153,15 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 		{
 			std::cout << " Duplicate: " << req.ip() << ":"
 				<< req.port() << " | "
-				<< client_hash.toString() << '\n';
+				<< client_hash.toString() << " | "
+				<< m_uid_hash.toString() << '\n';
 		}
 		else
 		{
-			std::cout << " Duplicate: " << ip << ":"
-				<< port << " | "
-				<< client_hash.toString() << '\n';
+			std::cout << " Duplicate(direct): " << req.ip() << ":"
+				<< req.port() << " | "
+				<< client_hash.toString() << " | "
+				<< m_uid_hash.toString() << '\n';
 		}
 	}
 	else if (!m_successor.set)
@@ -169,7 +174,6 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 			m_successor.peer.ip = req.ip();
 			m_successor.peer.port = req.port();
 			m_successor.peer.uid_hash = Hash(req.id(), true);
-			m_successor.set = true;
 		}
 		else
 		{
@@ -196,8 +200,10 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 			join_request.SerializeToString(&join_message);
 			m_primary_socket->write(join_message, m_successor.peer.ip,
 					m_successor.peer.port);
-			m_successor.set = true;
 		}
+		m_successor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
+		m_successor.set = true;
+		m_successor.missed = false;
 	}
 	else if (client_hash.between(m_uid_hash, m_successor.peer.uid_hash))
 	{
@@ -248,7 +254,6 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 		{
 			join_request.set_ip(ip);
 			join_request.set_port(port);
-			std::cout << "direct\n";
 		}
 
 		join_request.SerializeToString(&join_message);
@@ -256,10 +261,12 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 				m_successor.peer.port);
 
 	}
-	/*
-	std::cout << " (host)(successor): " << m_uid_hash.toString()
-		<< " | "
+
+	/*std::cout << m_uid_hash.toString()
+		<< "  "
 		<< m_successor.peer.uid_hash.toString() << '\n'; */
+	std::cout << m_successor.peer.uid_hash.toString() << " <- " <<
+		m_uid_hash.toString() << '\n';
 }
 
 // Do we need this?
@@ -284,22 +291,20 @@ void Chord::handle_drop(const Request& req, const std::string& ip,
 void Chord::handle_sync(const Request& req, const std::string& ip,
 		unsigned short port)
 {
-	std::cout << "sync request\n";
 	// It is a response keep our successor alive
 	if (req.pass() == true)
 	{
-		std::cout << " successor is still alive\n";
 		m_successor.missed = false;
 	}
 	else // It is a request, generate reponse
 	{
-		std::cout << " heartbeat test\n";
-		/*Request sync_request;
+		Request sync_request;
 		std::string sync_message;
-
-
+		sync_request.set_id(m_uid_hash.raw());
+		sync_request.set_type(Request::SYNC);
+		sync_request.set_pass(true);
 		sync_request.SerializeToString(&sync_message);
-		m_primary_socket->write(sync_message, ip, port); */
+		m_primary_socket->write(sync_message, ip, port);
 	}
 }
 
@@ -310,32 +315,35 @@ void Chord::pulse()
 {
 	if (m_successor.set)
 	{
-		// Generate SYNC request
 		Request sync_request;
 		std::string sync_message;
 		sync_request.set_id(m_uid_hash.raw());
 		sync_request.set_pass(false);
 		sync_request.set_type(Request::SYNC);
-
 		sync_request.SerializeToString(&sync_message);
+
 		m_primary_socket->write(sync_message, m_successor.peer.ip,
 				m_successor.peer.port);
 
 		if (m_successor.missed == false) m_successor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
 		else if (m_successor.resiliancy == 0)
 		{
-			// Disconnect from our successor, it is dead
 			m_successor.set = false;
-			std::cout << " He's dead, Jim!\n";
+			std::cout << " He's dead, Jim\n";
+			m_successor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
 		}
-		else m_successor.resiliancy--;
+		else
+		{
+			m_successor.resiliancy--;
+			std::cout << " successor life force: " << m_successor.resiliancy << '\n';
+		}
 		m_successor.missed = true;
-		std::cout << " Successor life force: " << m_successor.resiliancy << '\n';
+	}
+	else
+	{
+		std::cout << "No successor\n "
+			<< m_successor.missed << " : " << m_successor.resiliancy << '\n';
 
-		/*	std::cout << " ** thump **\n";
-			std::cout << "(succ)" << m_successor.peer.uid_hash.toString()
-			<< " : (host)" << m_uid_hash.toString() << '\n';
-			std::cout << " ** thump **\n"; */
 	}
 }
 void Chord::heartBeat()

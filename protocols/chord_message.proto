@@ -3,20 +3,21 @@ package ChordDHT;
 message Request
 {
 	required bytes id = 1;
-	optional bytes content = 2; // Maybe make this repeated?
-	optional bool pass = 3 [default = false]; //Passing content forward
-	optional string ip = 4 [default = ""]; //Don't lose original source
-	optional int32 port = 5 [default = 0]; //Don't lose original source
 
-	enum RequestType
-	{
-		JOIN = 0; // Join chord ring
-		DROP = 1; // Remove from chord ring
-		GET = 2; // Get value from chord
-		SET = 3; // Set value in chord
-		SYNC = 4; // Stabilizing communications
-		UPDATE = 5; // Update key/value
+	enum RequestType {
+		GET = 0;
+		SET = 1;
+		JOIN = 2;
+		DROP = 3;
+		SYNC = 4;
+		UPDATE = 5;
 	}
 
-	required RequestType type = 6 [default = JOIN];
+	required RequestType type = 2;
+
+	optional bytes content = 3; // Maybe make this repeated?
+	optional bool pass = 4 [default = false]; //Passing content forward
+	optional string ip = 5 [default = ""]; //Don't lose original source
+	optional int32 port = 6 [default = 0]; //Don't lose original source
+
 }
