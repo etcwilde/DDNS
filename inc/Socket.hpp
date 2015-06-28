@@ -11,6 +11,7 @@
 
 #include <arpa/inet.h>
 #include <assert.h>
+#include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <string.h>
@@ -18,15 +19,19 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include <string>
 #include <iostream>
 
 #define BUFFER_SIZE 1024
 
+
+
 class Socket
 {
 public:
+
 	virtual ~Socket();
 
 	virtual int write(const std::string& message, const std::string& client_ip,
@@ -36,6 +41,9 @@ public:
 			unsigned short& client_port) const;
 
 	void shutdown();
+
+
+	static int hostname_to_ip(const std::string& hostname, std::string& ip);
 
 protected:
 	Socket(unsigned short port);
