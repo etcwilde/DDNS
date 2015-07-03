@@ -3,18 +3,21 @@ package DNS;
 message Request
 {
 	required bytes id = 1;
+	optional string ip = 2 [default = ""]; //Original Source IP
+	optional int32 port = 3 [default = 0]; //Original Source Port
+
 
 	enum RequestType {
 		JOIN = 0;
 		DROP = 1;
-		BAD = 2;
-		SYNC = 3;
+		GET = 2;
+		BAD = 3;
+		SYNC = 4;
 	}
 
-	required RequestType type = 2;
+	required RequestType type = 4;
 
-	optional bool forward = 4 [default = false]; //Forwarded packet
-	optional string ip = 5 [default = ""]; //Original Source IP
-	optional int32 port = 6 [default = 0]; //Original Source Port
+
+	optional bool forward = 5 [default = false]; //Forwarded packet
 
 }

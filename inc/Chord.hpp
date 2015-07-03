@@ -45,6 +45,10 @@ namespace DNS
 		ChordDNS(const std::string& DomainName);
 		~ChordDNS();
 
+		// Return 0 if no error
+		int Lookup(const std::string& Name,
+				std::string& ip, unsigned short& port);
+
 	private:
 
 	// Chord Stuff -- Interface with the networking side
@@ -59,8 +63,7 @@ namespace DNS
 		// Request handlers
 		void handle_join(const Request& req, const std::string& ip,
 				unsigned short port);
-		void handle_get(const Request& req, const std::string& ip,
-				unsigned short port, const Hash& key);
+		void handle_get(const Request& req, const std::string& ip, unsigned short port);
 		void handle_set(const Request& req, const std::string& ip, unsigned short port);
 		void handle_sync(const Request& req, const std::string& ip, unsigned short port);
 

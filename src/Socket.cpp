@@ -50,8 +50,6 @@ int Socket::write(const std::string& message, const std::string& hostname,
 
 	// Resolve outgoing hostname -- It may fail
 	if (hostname_to_ip(hostname, client_ip) != 0) return 0;
-	std::cout << "Socket Hostname Resolution: " << hostname << " : " << client_ip << '\n';
-
 	inet_pton(AF_INET, client_ip.c_str(), &(client_address.sin_addr));
 	client_address.sin_port = htons(client_port);
 	int bytes_sent = sendto(m_socket_fd,
@@ -94,7 +92,6 @@ int Socket::hostname_to_ip(const std::string& hostname, std::string& ip)
 {
 	struct hostent *he;
 	struct in_addr *addr;
-	std::cout << "Resolving: " << hostname << '\n';
 	if (( he = gethostbyname(hostname.c_str())) == NULL)
 	{
 		herror("Name Resolution");

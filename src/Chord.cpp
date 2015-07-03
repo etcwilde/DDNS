@@ -13,9 +13,9 @@ ChordDNS::ChordDNS(const std::string& uid):
 	m_primary_socket(NULL),
 	m_uid(uid),
 	m_uid_hash(Hash(uid)),
+	m_dead(false),
 	m_chord_log("logs/"+std::to_string(getpid())+"_chord.log")
 {
-	m_dead = false;
 	m_successor.set = false;
 	m_successor.heartbeat = CHORD_DEFAULT_HEART_BEAT;
 	m_successor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
@@ -34,6 +34,34 @@ ChordDNS::ChordDNS::~ChordDNS()
 	if (m_primary_socket) delete m_primary_socket;
 }
 
+int ChordDNS::Lookup(const std::string& Name,
+		std::string& ip, unsigned short& port)
+{
+	if (m_uid.compare(Name) == 0)
+	{
+		ip = "localhost";
+		port = m_port;
+		return 0;
+	}
+
+	if (!m_successor.set) return 1;
+
+	// Okay, if we have a successor, go out and send them a request
+	// I'm not really sure how to uh, fix this.
+	Request get_request;
+	std::string get_message;
+	get_request.set_id(Hash(Name).raw());
+	get_request.set_forward(false);
+	get_request.set_type(Request::GET);
+	get_request.SerializeToString(&get_message);
+	m_primary_socket->write(get_message, m_successor.ip, m_successor.port);
+
+	// Now we need to figure out how to get the result from the response.
+	//
+	// I'm thinking an event queue that services the requests as they come
+	// in. Kind of like the TCP acknowledgment window but with ip/port
+	// pairs instead of data packets.
+}
 
 // Network stuff
 void ChordDNS::create(unsigned short port)
@@ -83,24 +111,30 @@ void ChordDNS::request_handler()
 		{
 			case Request::JOIN:
 				{
-					std::cout << "JOIN REQUEST\n";
+					//std::cout << "JOIN REQUEST\n";
 					handle_join(current_request, client_ip,
 							client_port);
 				}
 				break;
 			case Request::DROP:
 				{
-					std::cout << "DROP REQUEST\n";
+					//std::cout << "DROP REQUEST\n";
 				}
 				break;
 			case Request::BAD:
 				{
-					std::cout << "BAD REQUEST\n";
+					//std::cout << "BAD REQUEST\n";
 				}
 				break;
 			case Request::SYNC:
 				{
 					handle_sync(current_request, client_ip,
+							client_port);
+				}
+				break;
+			case Request::GET:
+				{
+					handle_get(current_request, client_ip,
 							client_port);
 				}
 				break;
@@ -112,7 +146,7 @@ void ChordDNS::request_handler()
 				break;
 		}
 	}
-	std::cout << " Request Processor killed!\n";
+	//std::cout << " Request Processor killed!\n";
 }
 
 void ChordDNS::handle_join(const Request& req, const std::string& ip,
@@ -121,8 +155,9 @@ void ChordDNS::handle_join(const Request& req, const std::string& ip,
 	Hash client_hash(req.id(), true);
 	if (client_hash.compareTo(m_uid_hash) == 0)
 	{
-		m_chord_log.write("Node with same UID: " + ip + ":"
-				+ std::to_string(port));
+		m_chord_log.write("Node with same UID: " + ip + ":" + std::to_string(port));
+		// We will assume that it is us I guess
+		//std::cout << "Same Request: FROM" << ip << ":" << port << " " << req.ip() << ":" << req.port() << '\n';
 	}
 	else if (!m_successor.set)
 	{
@@ -216,12 +251,13 @@ void ChordDNS::handle_join(const Request& req, const std::string& ip,
 		{
 			join_request.set_ip(req.ip());
 			join_request.set_port(req.port());
-			std::cout << "forwarded\n";
+			//std::cout << "forwarded: From: " << req.ip() << ":" << req.port() << '\n';
 		}
 		else
 		{
 			join_request.set_ip(ip);
 			join_request.set_port(port);
+			//std::cout << "Sent From: " << ip << ":" << port <<'\n';
 		}
 
 		join_request.SerializeToString(&join_message);
@@ -229,10 +265,49 @@ void ChordDNS::handle_join(const Request& req, const std::string& ip,
 				m_successor.port);
 
 	}
-	if (m_successor.set)
-		std::cout << m_successor.uid_hash.toString()
-			<< " <- " <<
-			m_uid_hash.toString() << '\n';
+}
+
+void ChordDNS::handle_get(const Request& req, const std::string& ip,
+		unsigned short port)
+{
+	Hash client_hash(req.id(), true);
+	if (client_hash.compareTo(m_uid_hash) == 0)
+	{
+		if (req.forward() == true)
+		{
+			m_chord_log.write("Lookup Success: From " + req.ip()
+					+ ":" + std::to_string(req.port()));
+		}
+		else
+		{
+			m_chord_log.write("Lookup Success: From " + ip +":"
+					+ std::to_string(port));
+		}
+		//m_chord_log.write("Lookup success: From " + std::to_string(");
+		//std::cout << " YOU FOUND ME\n";
+	}
+	else
+	{
+		Request get_request;
+		std::string get_message;
+		get_request.set_id(client_hash.raw());
+		get_request.set_type(Request::GET);
+		get_request.set_forward(true);
+		if (req.forward() == true)
+		{
+			get_request.set_ip(req.ip());
+			get_request.set_port(req.port());
+		}
+		else
+		{
+			get_request.set_ip(ip);
+			get_request.set_port(port);
+		}
+
+		get_request.SerializeToString(&get_message);
+		m_primary_socket->write(get_message, m_successor.ip,
+				m_successor.port);
+	}
 }
 
 /**

@@ -56,8 +56,26 @@ int main(int argc, const char* argv[])
 		client_port = static_cast<unsigned short>(atoi(argv[4]));
 		chord_test.join(client_ip, client_port, host_port);
 	}
+	std::string dns_name;
+	for(;;)
+	{
+		std::cout << "Lookup: ";
+		std::cin >> dns_name;
+		if (dns_name.compare("exit") == 0) break;
+		std::cout << " looking up " << dns_name << " using distributed methods\n";
+		std::string resolved_ip;
+		unsigned short resolved_port;
+		if(chord_test.Lookup(dns_name, resolved_ip, resolved_port) != 0)
+		{
+			std::cerr << " Failed To Resolve " << dns_name << '\n';
+			continue;
+		}
+		std::cout << dns_name << " -> " << resolved_ip << ":" << resolved_port << '\n';
+	}
+
+	/*
 	std::cout << " Hit Return to exit\n";
 	std::string something;
-	std::getline(std::cin, something);
+	std::getline(std::cin, something); */
 	return 0;
 }
