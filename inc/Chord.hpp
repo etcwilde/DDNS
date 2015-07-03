@@ -21,16 +21,14 @@
 #include "chord_message.pb.h"
 #include "Socket.hpp"
 #include "Peer.hpp"
+#include "logging.hpp"
 
 #define CHORD_DEFAULT_PORT 1994 	// Default connection port if no port supplied
 #define CHORD_DEFAULT_HEART_BEAT 3000 	// Ping every 3 seconds
 #define CHORD_DEFAULT_RESILLIANCY 3 	// Three pulse misses and it is dead
-#define CHORD_DEFAULT_NODES_EXPONENT 3  // Chord ring size is 3
 #define CHORD_DEFAULT_TABLE_SIZE 512	// 512 items can be stored on a single node
 //#define CHORD_DEFAULT_HANDLER_THREADS 3	// Uses 3 threads for handling by default
 #define CHORD_DEFAULT_HANDLER_THREADS 1
-
-#define CHORD_DEFAULT_SIZE 8 		// Number of nodes (low for testing)
 
 // We use a heartbeat to determine if the node is still alive. When three
 // pulses are missed, the node is dead and should be removed from the chord
@@ -48,7 +46,6 @@ namespace ChordDHT
 	// DHT stuff -- This is the interface for the hash table
 	public:
 		Chord(std::string uid,
-				unsigned int global_exponent=CHORD_DEFAULT_NODES_EXPONENT,
 				unsigned long local_size=CHORD_DEFAULT_TABLE_SIZE);
 		~Chord();
 
@@ -63,7 +60,6 @@ namespace ChordDHT
 
 	private:
 		LocalHashTable m_table;
-		unsigned int m_global_exponent;
 		unsigned long m_local_size;
 
 	// Chord Stuff -- Interface with the networking side
@@ -108,7 +104,7 @@ namespace ChordDHT
 		 * 	set : Is the information in this structure valid
 		 * 	missed: did the node miss the last beat?
 		 * 	heartbeat: how often the neighbor needs to be queried
-		 * 	resiliancy: how much life is left on the neighbor
+		 * 	resiliency: how much life is left on the neighbor
 		 * 	peer: A container for the ip, port number, and hash
 		 */
 		typedef struct
@@ -120,9 +116,10 @@ namespace ChordDHT
 			Peer peer;
 		} neighbor_t;
 		neighbor_t m_successor;
-		neighbor_t m_old_successor;
+		neighbor_t m_predecessor;
+	private: // Extras
+		Log m_chord_log;
 	};
 };
-
 
 #endif//CHORD_HPP

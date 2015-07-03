@@ -10,28 +10,25 @@
 
 using namespace ChordDHT;
 
-Chord::Chord(std::string uid, uint global_exponent, ulong local_size):
+Chord::Chord(std::string uid, ulong local_size):
 	m_table(),
-	m_global_exponent(global_exponent),
 	m_local_size(local_size),
 	m_primary_socket(NULL),
 	m_uid(uid),
-	m_uid_hash(Hash(uid))
+	m_uid_hash(Hash(uid)),
+	m_chord_log("logs/"+std::to_string(getpid())+"/chord.log")
 {
 	m_dead = false;
 	m_successor.set = false;
 	m_successor.heartbeat = CHORD_DEFAULT_HEART_BEAT;
 	m_successor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
 	m_successor.missed = false;
-	m_old_successor.set = false;
-
+	m_predecessor.set = false;
 	m_heart = std::thread(&Chord::heartBeat, this);
-	std::cout << "Starting Chord\n";
 }
 
 Chord::Chord::~Chord()
 {
-	std::cout << "Ending Chord\n";
 	m_dead = true;
 	m_heart.join();
 	m_primary_socket->shutdown();
@@ -56,8 +53,6 @@ std::string Chord::lookup(const Hash& key, std::string& ip, unsigned short& port
 	return "Hello";
 }
 
-
-
 void Chord::remove(const Hash& key)
 {
 }
@@ -65,7 +60,6 @@ void Chord::remove(const Hash& key)
 // Network stuff
 void Chord::create(unsigned short port)
 {
-	std::cout << "Creating Chord Node\n";
 	m_port = port;
 	for (unsigned int i = 0; i < CHORD_DEFAULT_HANDLER_THREADS; ++i)
 		m_handler_threads.push_back(
@@ -73,11 +67,11 @@ void Chord::create(unsigned short port)
 	m_primary_socket = new UDPSocket(port);
 }
 
+// Join methods
+
 void Chord::join(const std::string& host_ip,
 		unsigned short host_port, unsigned short my_port)
 {
-	std::cout << " Joining Chord Node\n";
-	std::cout << "My UID/HASH\n UID: " << m_uid << "\n HASH: " << m_uid_hash.toString() << '\n';
 	create(my_port);
 	// Now send join request
 	Request join_request;
@@ -150,27 +144,12 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 	Hash client_hash(req.id(), true);
 	if (client_hash.compareTo(m_uid_hash) == 0)
 	{
-		std::cout << " This ID already exists\n";
-		// We should actually send some response to the node so that it
-		// knows that we didn't even try to send it
-		if (req.pass() == true)
-		{
-			std::cout << " Duplicate: " << req.ip() << ":"
-				<< req.port() << " | "
-				<< client_hash.toString() << " | "
-				<< m_uid_hash.toString() << '\n';
-		}
-		else
-		{
-			std::cout << " Duplicate(direct): " << req.ip() << ":"
-				<< req.port() << " | "
-				<< client_hash.toString() << " | "
-				<< m_uid_hash.toString() << '\n';
-		}
+		m_chord_log.write("Node with same UID: " + ip + ":"
+				+ std::to_string(port));
 	}
 	else if (!m_successor.set)
 	{
-		std::cout << " No successor set\n";
+		//std::cout << " No successor set\n";
 		// The ring is established, we need to join
 		if (req.pass() == true)
 		{
@@ -216,22 +195,13 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 		old_successor.port = m_successor.peer.port;
 		old_successor.uid_hash = m_successor.peer.uid_hash;
 
-		if (client_hash != m_successor.peer.uid_hash)
+		if (client_hash == m_successor.peer.uid_hash)
 		{
-			// Update m_old_successor
-			m_old_successor.set = true; // I think...
-			m_old_successor.peer.ip = m_successor.peer.ip;
-			m_old_successor.peer.port = m_successor.peer.port;
-			m_old_successor.peer.uid_hash = m_successor.peer.uid_hash;
-			m_old_successor.missed = false;
+
+			m_successor.heartbeat /= 2;
+
 		}
-		else
-		{
-			// This is our other node, it might be faulty
-			// Lets increase the heart rate (This might be a bad
-			// idea)
-			m_old_successor.heartbeat /= 2;
-		}
+
 
 
 		Request join_request;
@@ -295,8 +265,9 @@ void Chord::handle_join(const Request& req, const std::string& ip,
 void Chord::handle_sync(const Request& req, const std::string& ip,
 		unsigned short port)
 {
+	// Handle Response
 	if (req.pass() == true) m_successor.missed = false;
-	else
+	else // Handle sync request
 	{
 		Request sync_request;
 		std::string sync_message;
@@ -310,7 +281,6 @@ void Chord::handle_sync(const Request& req, const std::string& ip,
 
 
 // Heart Stuff
-
 void Chord::pulse()
 {
 	if (m_successor.set)
@@ -325,44 +295,16 @@ void Chord::pulse()
 		m_primary_socket->write(sync_message, m_successor.peer.ip,
 				m_successor.peer.port);
 
-		if (m_successor.missed == false) m_successor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
-		else if (m_successor.resiliancy == 0)
-		{
-
-			if (m_old_successor.set = true)
-			{
-				m_successor.peer.ip = m_old_successor.peer.ip;
-				m_successor.peer.port = m_old_successor.peer.port;
-				m_successor.peer.uid_hash = m_old_successor.peer.uid_hash;
-				m_successor.set = true;
-				m_old_successor.set = false;
-
-				std::cout
-					<< m_successor.peer.uid_hash.toString()
-					<< " <- " <<
-					m_uid_hash.toString() << '\n';
-
-			}
-			else
-			{
-				std::cout << " The chain may have failed\n";
-				m_successor.set = false;
-			}
-		}
-		else
-		{
-			m_successor.resiliancy--;
-			std::cout << " successor life force: " << m_successor.resiliancy << '\n';
-		}
+		if (m_successor.missed == false)
+			m_successor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
+		else if (m_successor.resiliancy == 0) m_successor.set = false;
+		else m_successor.resiliancy--;
 		m_successor.missed = true;
 	}
 }
+
 void Chord::heartBeat()
 {
 	while (!m_dead) { pulse(); usleep(m_successor.heartbeat * 1000); }
 }
-
-
-
-
 
