@@ -13,11 +13,13 @@
 #include "Chord.hpp"
 #include "chord_message.pb.h"
 #include "HashTable.hpp"
+#include "logging.hpp"
 
 #define DEFAULT_PORT 8080
 
 int main(int argc, const char* argv[])
 {
+	Log logfile("logs/"+std::to_string(getpid())+"_main.log");
 	std::string client_ip;
 	unsigned short client_port;
 	std::string host_name;
@@ -26,7 +28,11 @@ int main(int argc, const char* argv[])
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	if (argc != 3 && argc != 5)
 	{
-		std::cout << "Usage: " << argv[0] << " <My Name> <My Port> [<Host IP address> <Host Port Number>]\n";
+		std::cerr<< "Usage: "
+			<< argv[0]
+			<< " <My Name> <My Port> [<Host IP address> <Host Port Number>]\n";
+		logfile.write("Incorrect arguments: " + std::to_string(argc)
+				+ " provided, 3 expected, 5 optional");
 		return 1;
 	}
 
@@ -34,16 +40,18 @@ int main(int argc, const char* argv[])
 	host_port = static_cast<unsigned short>(atoi(argv[2]));
 	std::cout << "Host Name: " << host_name << ":" << host_port << '\n';
 
-	ChordDHT::Chord chord_test(host_name);
+	DNS::ChordDNS chord_test(host_name);
 
 
 	// We are alone in the world, we just sit here and be quite
 	if (argc == 3)
 	{
+		logfile.write("Instancing new chord ring");
 		chord_test.create(host_port);
 	}
 	else // We have the host IP and port number
 	{
+		logfile.write("Joining chord ring " + client_ip);
 		client_ip = std::string(argv[3]);
 		client_port = static_cast<unsigned short>(atoi(argv[4]));
 		chord_test.join(client_ip, client_port, host_port);

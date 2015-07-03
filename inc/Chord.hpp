@@ -17,17 +17,14 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "HashTable.hpp"
 #include "chord_message.pb.h"
 #include "Socket.hpp"
-#include "Peer.hpp"
 #include "logging.hpp"
+#include "Hash.hpp"
 
 #define CHORD_DEFAULT_PORT 1994 	// Default connection port if no port supplied
 #define CHORD_DEFAULT_HEART_BEAT 3000 	// Ping every 3 seconds
 #define CHORD_DEFAULT_RESILLIANCY 3 	// Three pulse misses and it is dead
-#define CHORD_DEFAULT_TABLE_SIZE 512	// 512 items can be stored on a single node
-//#define CHORD_DEFAULT_HANDLER_THREADS 3	// Uses 3 threads for handling by default
 #define CHORD_DEFAULT_HANDLER_THREADS 1
 
 // We use a heartbeat to determine if the node is still alive. When three
@@ -39,33 +36,22 @@
 // We store the information about or neighbors
 //
 
-namespace ChordDHT
+namespace DNS
 {
-	class Chord : public DistributedHashTable
+	class ChordDNS
 	{
 	// DHT stuff -- This is the interface for the hash table
 	public:
-		Chord(std::string uid,
-				unsigned long local_size=CHORD_DEFAULT_TABLE_SIZE);
-		~Chord();
-
-		virtual void insert(const Hash& key, std::string value);
-		virtual bool check(const Hash& key, std::string test_value,
-				std::string& ip, unsigned short& port);
-
-		virtual std::string lookup(const Hash& key, std::string& ip,
-				unsigned short& port);
-
-		virtual void remove(const Hash& key);
+		ChordDNS(const std::string& DomainName);
+		~ChordDNS();
 
 	private:
-		LocalHashTable m_table;
-		unsigned long m_local_size;
 
 	// Chord Stuff -- Interface with the networking side
 	public:
+		// Create a chord ring
 		void create(unsigned short port=CHORD_DEFAULT_PORT);
-		// Join a
+		// Join a Chord Ring
 		void join(const std::string& host_ip,
 				unsigned short host_port=CHORD_DEFAULT_PORT,
 				unsigned short my_port=CHORD_DEFAULT_PORT);
@@ -113,8 +99,12 @@ namespace ChordDHT
 			bool missed;
 			unsigned int resiliancy;
 			double heartbeat;
-			Peer peer;
+			std::string ip;
+			unsigned short port;
+			Hash uid_hash;
+			//Peer peer;
 		} neighbor_t;
+
 		neighbor_t m_successor;
 		neighbor_t m_predecessor;
 	private: // Extras
