@@ -62,6 +62,11 @@ int main(int argc, const char* argv[])
 		std::cout << "Lookup: ";
 		std::cin >> dns_name;
 		if (dns_name.compare("exit") == 0) break;
+		else if (dns_name.compare("dump") == 0)
+		{
+			chord_test.Dump("logs/dump_"+std::to_string(getpid()));
+			continue;
+		}
 		std::cout << " looking up " << dns_name << " using distributed methods\n";
 		std::string resolved_ip;
 		unsigned short resolved_port;

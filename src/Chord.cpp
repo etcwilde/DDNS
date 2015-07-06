@@ -56,12 +56,25 @@ int ChordDNS::Lookup(const std::string& Name,
 	get_request.SerializeToString(&get_message);
 	m_primary_socket->write(get_message, m_successor.ip, m_successor.port);
 
+	return 1;
 	// Now we need to figure out how to get the result from the response.
 	//
 	// I'm thinking an event queue that services the requests as they come
 	// in. Kind of like the TCP acknowledgment window but with ip/port
 	// pairs instead of data packets.
 }
+
+void ChordDNS::Dump(const std::string& dump_name)
+{
+	Log dump_log(dump_name + ".dump");
+	dump_log.write("-----------------------------------------");
+	dump_log.write(m_uid + "::" + m_uid_hash.toString() + '\n');
+	dump_log.write("Successor:");
+	dump_log.write(m_successor.uid_hash.toString());
+	dump_log.write("IP: " + m_successor.ip);
+	dump_log.write("Port: " + std::to_string(m_successor.port) + '\n');
+}
+
 
 // Network stuff
 void ChordDNS::create(unsigned short port)
@@ -207,13 +220,12 @@ void ChordDNS::handle_join(const Request& req, const std::string& ip,
 		old_successor.port = m_successor.port;
 		old_successor.uid_hash = m_successor.uid_hash;
 
-		if (client_hash == m_successor.uid_hash)
+		/*if (client_hash == m_successor.uid_hash)
 		{
 
 			m_successor.heartbeat /= 2;
 
-		}
-
+		} */
 
 
 		Request join_request;
@@ -224,10 +236,14 @@ void ChordDNS::handle_join(const Request& req, const std::string& ip,
 		join_request.set_port(old_successor.port);
 		join_request.set_id(old_successor.uid_hash.raw());
 		join_request.SerializeToString(&join_message);
+
+		// This here is breaking
+		// FIXME: This needs fixing
 		if (req.forward() == true)
 		{
 			m_primary_socket->write(join_message, req.ip(),
 					req.port());
+			// Update local information
 			m_successor.ip = req.ip();
 			m_successor.port = req.port();
 			m_successor.uid_hash = Hash(req.id(), true);
@@ -273,13 +289,16 @@ void ChordDNS::handle_get(const Request& req, const std::string& ip,
 	Hash client_hash(req.id(), true);
 	if (client_hash.compareTo(m_uid_hash) == 0)
 	{
+		std::cout << "Host->Client: " << m_uid_hash.toString() << " -> " << m_successor.uid_hash.toString()  << " (" << client_hash.toString() << ")" << '\n';
 		if (req.forward() == true)
 		{
+			std::cout << "Lookup Success From: " << req.ip() << ":" << req.port() << '\n';
 			m_chord_log.write("Lookup Success: From " + req.ip()
 					+ ":" + std::to_string(req.port()));
 		}
 		else
 		{
+			std::cout << "Lookup Success From: " << req.ip() << ":" << req.port() << '\n';
 			m_chord_log.write("Lookup Success: From " + ip +":"
 					+ std::to_string(port));
 		}
@@ -304,6 +323,9 @@ void ChordDNS::handle_get(const Request& req, const std::string& ip,
 			get_request.set_port(port);
 		}
 
+		std::cout << " Forwarding Request " << get_request.ip() << ':'
+			<< get_request.port() << "->" << m_successor.ip << ':'
+			<< m_successor.port << '\n';
 		get_request.SerializeToString(&get_message);
 		m_primary_socket->write(get_message, m_successor.ip,
 				m_successor.port);

@@ -49,6 +49,15 @@ namespace DNS
 		int Lookup(const std::string& Name,
 				std::string& ip, unsigned short& port);
 
+		/*
+		 * <UID>::<UID_HASH>
+		 *
+		 * Successor:
+		 * <Successor UID_HASH>
+		 * <Successor IP>:<Successor Port>
+		 */
+		void Dump(const std::string& dump_name);
+
 	private:
 
 	// Chord Stuff -- Interface with the networking side
