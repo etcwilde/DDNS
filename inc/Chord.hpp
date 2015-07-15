@@ -17,6 +17,7 @@
 
 #include <unistd.h>
 #include <string.h>
+#include <typeinfo>
 
 
 #include "chord_message.h"

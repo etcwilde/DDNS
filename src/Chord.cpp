@@ -108,7 +108,43 @@ void ChordDNS::join(const std::string& host_ip,
 {
 	//std::cout << " Joining\n";
 	create(my_port);
+
+
 	// Now send join request
+	flatbuffers::FlatBufferBuilder fbb;
+
+	auto req = CreateRequest(fbb, fbb.CreateString(m_uid_hash.raw()),
+			RequestType_JOIN, fbb.CreateString("0.0.0.0"),
+			my_port, true);
+
+	fbb.Finish(req);
+	/*
+	std::cout << std::hex << "Flatbuffer Pointer: " <<
+		fbb.GetBufferPointer() << " Size: " <<
+		fbb.GetSize() << '\n';
+		*/
+
+	// DEBUG
+	/*
+	std::cout << "Printing FlatBuffer:\n" << std::hex;
+	for (unsigned int i = 0; i < fbb.GetSize(); ++i)
+	{
+		std::cout << int(*(fbb.GetBufferPointer() + i));
+	}
+	std::cout << std::dec << '\n';
+	*/
+
+	std::cout << "Printing FlatBuffer:\n" << std::hex;
+	for (unsigned int i = 0; i < fbb.GetSize(); ++i)
+	{
+		std::cout << (uint8_t)(*(fbb.GetBufferPointer() + i));
+	}
+	std::cout << std::dec << '\n';
+
+
+	std::string message(reinterpret_cast<char*>(fbb.GetBufferPointer()),
+			fbb.GetSize());
+	m_primary_socket->write(message, host_ip, host_port);
 }
 
 
@@ -118,11 +154,37 @@ void ChordDNS::request_handler()
 	while (m_primary_socket == NULL) {} //Spin lock
 	while (!m_dead)
 	{
-
 		std::string input;
 		std::string client_ip;
 		unsigned short client_port;
 		m_primary_socket->read(input, client_ip, client_port);
+		std::cout << " Incoming size: " << input.size() << '\n';
+		//const Request* req = GetRequest(input.c_str());
+
+		std::cout << "Printing FlatBuffer:\n" << std::hex;
+		for (unsigned int i = 0; i < input.size(); ++i)
+		{
+			std::cout << (uint8_t)(input.c_str()[i]);
+		}
+		std::cout << std::dec << '\n';
+
+
+		/*
+		switch(req->type())
+		{
+			case RequestType::RequestType_JOIN:
+				{
+					std::cout << " JOIN REQUEST\n";
+				}
+			default:
+				{
+					std::cerr << " Protocol Error: Request type unkown\n";
+				}
+		}
+		*/
+
+
+
 		if (m_dead) break;
 	}
 }

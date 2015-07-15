@@ -56,6 +56,7 @@ int Socket::write(const std::string& message, const std::string& hostname,
 			message.c_str(), message.size(), 0,
 			(struct sockaddr*)&client_address,
 			sizeof(client_address));
+	std::cout << " Bytes Sent: " << bytes_sent << '\n';
 	return bytes_sent;
 }
 
@@ -69,12 +70,15 @@ int Socket::read(std::string& message, std::string& client_ip,
 	socklen_t client_add_len = sizeof(client_addr);
 	int bytes_read = recvfrom(m_socket_fd, buffer, BUFFER_SIZE, 0,
 			(sockaddr*)&client_addr, &client_add_len);
+	std::cout << " Bytes Received: " << bytes_read << '\n';
+
 	if (bytes_read < 0)
 	{
 		std::cerr << "Error: failed to completely read the packet\n";
 		return bytes_read;
 	}
-	message = std::string((char*)buffer);
+	message = std::string((char*)buffer, bytes_read);
+	std::cout << " Message size: " << message.size() << '\n';
 	client_port = ntohs(client_addr.sin_port);
 	client_ip_buf[INET_ADDRSTRLEN] = 0;
 	inet_ntop(AF_INET,

@@ -17,3 +17,4 @@ table Request {
   forward:bool;
 }
 
+root_type Request;
