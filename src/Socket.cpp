@@ -74,7 +74,7 @@ int Socket::read(std::string& message, std::string& client_ip,
 		std::cerr << "Error: failed to completely read the packet\n";
 		return bytes_read;
 	}
-	message = std::string((char*)buffer);
+	message = std::string((char*)buffer, bytes_read);
 	client_port = ntohs(client_addr.sin_port);
 	client_ip_buf[INET_ADDRSTRLEN] = 0;
 	inet_ntop(AF_INET,
