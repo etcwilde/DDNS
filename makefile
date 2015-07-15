@@ -79,11 +79,19 @@ TEST_OBJS	= \
 all: $(D_BIN)$(EXEC)
 
 
-protocols: $(D_SRC)chord_message.pb.cc
+protocols: $(D_SRC)chord_message.capnp.cpp
 
-$(D_SRC)chord_message.pb.cc: $(D_PROT)chord_message.proto
-	protoc -I=$(D_PROT) --cpp_out=$(D_SRC) $(D_PROT)chord_message.proto
-	mv $(D_SRC)chord_message.pb.h $(D_INC)chord_message.pb.h
+$(D_SRC)chord_message.capnp.cc: $(D_PROT)chord_message.capnp
+	capnp compile -oc++ $(D_PROT)chord_message.capnp
+	mv $(D_PROT)chord_message.capnp.c++ $(D_SRC)chord_message.capnp.cpp
+	mv $(D_PROT)chord_message.capnp.h $(D_SRC)chord_message.capnp.hpp
+
+
+# protocols: $(D_SRC)chord_message.pb.cc
+# 
+# $(D_SRC)chord_message.pb.cc: $(D_PROT)chord_message.proto
+# 	protoc -I=$(D_PROT) --cpp_out=$(D_SRC) $(D_PROT)chord_message.proto
+# 	mv $(D_SRC)chord_message.pb.h $(D_INC)chord_message.pb.h
 
 
 # Optimizations
