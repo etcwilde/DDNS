@@ -13,8 +13,7 @@ ChordDNS::ChordDNS(const std::string& uid):
 	m_primary_socket(NULL),
 	m_uid(uid),
 	m_uid_hash(Hash(uid)),
-	m_dead(false),
-	m_chord_log("logs/"+std::to_string(getpid())+"_chord.log")
+	m_dead(false)
 {
 	m_successor.set = false;
 	m_successor.heartbeat = CHORD_DEFAULT_HEART_BEAT;
@@ -53,6 +52,8 @@ int ChordDNS::Lookup(const std::string& Name,
 		return 0;
 	}
 
+
+
 	Request get_request;
 	std::string get_message;
 	get_request.set_id(Hash(Name).raw());
@@ -61,12 +62,17 @@ int ChordDNS::Lookup(const std::string& Name,
 	get_request.SerializeToString(&get_message);
 	m_primary_socket->write(get_message, m_successor.ip, m_successor.port);
 
-	return 1;
-	// Now we need to figure out how to get the result from the response.
-	//
-	// I'm thinking an event queue that services the requests as they come
-	// in. Kind of like the TCP acknowledgment window but with ip/port
-	// pairs instead of data packets.
+	// Now sleep until you are awoken
+	std::unique_lock<std::mutex> lock(m_wait_mux);
+	m_wait_cv.wait(lock);
+	ip = m_lookup_ip;
+	port = m_lookup_port;
+
+	m_lookup_ip = "";
+	m_lookup_port = 0;
+
+	if (ip == "" || port == 0) return 1;
+	return 0;
 }
 
 void ChordDNS::Dump(const std::string& dump_name)
@@ -147,10 +153,28 @@ void ChordDNS::request_handler()
 							client_port);
 				}
 				break;
+			case Request::RES:
+				{
+					handle_res(current_request, client_ip,
+							client_port);
+				}
+				break;
+			case Request::BAD:
+				{
+					handle_bad(current_request, client_ip,
+							client_port);
+				}
+				break;
 			default:
 				{
-					std::cerr <<"Request Protocol Error\n";
-					m_chord_log.write("Request Protocol Error: " + std::to_string(current_request.type()));
+					std::cerr <<"Request Protocol Error: type"
+						<< current_request.type() << '\n';
+					// Wake thread
+					m_lookup_ip = "";
+					m_lookup_port = 0;
+					m_wait_cv.notify_all();
+
+					//m_chord_log.write("Request Protocol Error: " + std::to_string(current_request.type()));
 				}
 				break;
 		}
@@ -258,23 +282,34 @@ void ChordDNS::handle_get(const Request& req, const std::string& ip,
 	Hash search_hash(req.id(), true);
 	if (search_hash == m_successor.uid_hash)
 	{
+
+		Request response;
+		std::string response_message;
+		response.set_id(req.id());
+		response.set_forward(false);
+		response.set_type(Request::RES);
+		response.set_ip(m_successor.ip);
+		response.set_port(m_successor.port);
+		response.SerializeToString(&response_message);
+
 		if (req.forward())
 		{
+			m_primary_socket->write(response_message,
+					req.ip(), req.port());
+
 			std::cout << " GET forwarded"
 				<< req.ip() << ":" << req.port()
 				<< "\tResolved to: " << m_successor.ip
 				<< ":" << m_successor.port << '\n';
-
-			// Send back
 		}
 		else
 		{
+			m_primary_socket->write(response_message, ip, port);
+
 			std::cout << " GET from "
 				<< ip << ":" << port
 				<< "\tResolved to: " << m_successor.ip
 				<< ":" << m_successor.port << '\n';
-
-			//
 		}
 
 	}
@@ -285,7 +320,20 @@ void ChordDNS::handle_get(const Request& req, const std::string& ip,
 	else if (search_hash.between(m_uid_hash, m_successor.uid_hash))
 	{
 		std::cout << " Search Not found\n";
-		// Send Bad Request back directly
+		Request response;
+		std::string response_message;
+		response.set_id(req.id());
+		response.set_forward(false);
+		response.set_type(Request::BAD);
+		response.SerializeToString(&response_message);
+		if (req.forward())
+		{
+			m_primary_socket->write(response_message,
+					req.ip(), req.port());
+		}
+		else
+			m_primary_socket->write(response_message,
+					ip, port);
 	}
 	else
 	{
@@ -327,6 +375,21 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 	}
 }
 
+void ChordDNS::handle_res(const Request& req, const std::string& ip,
+		unsigned short port)
+{
+	m_lookup_ip = req.ip();
+	m_lookup_port = req.port();
+	m_wait_cv.notify_all();
+}
+
+void ChordDNS::handle_bad(const Request& req, const std::string& ip,
+		unsigned short port)
+{
+	m_lookup_ip = "";
+	m_lookup_port = 0;
+	m_wait_cv.notify_all();
+}
 
 // Heart Stuff
 void ChordDNS::pulse()

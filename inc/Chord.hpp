@@ -8,12 +8,16 @@
 #ifndef CHORD_HPP
 #define CHORD_HPP
 
-#include <string>
-#include <mutex>
-#include <thread>
-#include <vector>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+#include <condition_variable>
+#include <mutex>
 
 #include <unistd.h>
 #include <string.h>
@@ -37,11 +41,13 @@
 // We store the information about or neighbors
 //
 
+
+//std:tuple<std::thread, std::string&, unsigned short&> lookup
+
 namespace DNS
 {
 	class ChordDNS
 	{
-	// DHT stuff -- This is the interface for the hash table
 	public:
 		ChordDNS(const std::string& DomainName);
 		~ChordDNS();
@@ -58,8 +64,26 @@ namespace DNS
 		 * <Successor IP>:<Successor Port>
 		 */
 		void Dump(const std::string& dump_name);
-
 	private:
+
+		static inline size_t hashFunction(const Hash& h)
+		{ return h.djb2(); }
+
+		// Temporary method of mapping backward
+		std::mutex m_wait_mux;
+		std::condition_variable m_wait_cv;
+
+		std::string m_lookup_ip;
+		unsigned short m_lookup_port;
+
+
+		std::unordered_map<Hash,
+			std::pair< std::condition_variable,
+				std::vector<
+					std::pair<
+					std::string&,
+					unsigned short&> > >,
+				std::function<decltype(hashFunction)> > m_lookups;
 
 	// Chord Stuff -- Interface with the networking side
 	public:
@@ -76,6 +100,8 @@ namespace DNS
 		void handle_get(const Request& req, const std::string& ip, unsigned short port);
 		void handle_set(const Request& req, const std::string& ip, unsigned short port);
 		void handle_sync(const Request& req, const std::string& ip, unsigned short port);
+		void handle_res(const Request& req, const std::string& ip, unsigned short port);
+		void handle_bad(const Request& req, const std::string& ip, unsigned short port);
 
 	private:
 		void request_handler();
@@ -121,7 +147,7 @@ namespace DNS
 		neighbor_t m_successor;
 		neighbor_t m_predecessor;
 	private: // Extras
-		Log m_chord_log;
+		//Log m_chord_log;
 	};
 };
 
