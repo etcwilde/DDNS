@@ -10,10 +10,10 @@ message Request
 
 
 	enum RequestType {
-		NONE = 0; // Even though I never set the type to this value
-			  // It seems to use it a lot...
-		JOIN = 1;
-		GET = 2;
-		SYNC = 3;
+		JOIN = 0; // Join with the ring
+		GET = 1;  // Get IP from ring
+		SYNC = 2; // Synchronize with ring
+		BAD = 3;  // Bad Request -- (not found)
+		RES = 4;  // Response -- (Found)
 	}
 }
