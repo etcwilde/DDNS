@@ -173,8 +173,6 @@ void ChordDNS::request_handler()
 					m_lookup_ip = "";
 					m_lookup_port = 0;
 					m_wait_cv.notify_all();
-
-					//m_chord_log.write("Request Protocol Error: " + std::to_string(current_request.type()));
 				}
 				break;
 		}
@@ -223,11 +221,6 @@ void ChordDNS::handle_join(const Request& req, const std::string& ip,
 		else
 		{
 			std::cout << " duplicate domain name\n";
-			// Send failed join response
-			// Unless my successor has died, in which case,
-			// m_successor would not be this and it would got to
-			// the next case... so yeah, this will handle node
-			// failures probably
 		}
 	}
 	else if (client_hash.between(m_uid_hash, m_successor.uid_hash))
@@ -297,29 +290,29 @@ void ChordDNS::handle_get(const Request& req, const std::string& ip,
 			m_primary_socket->write(response_message,
 					req.ip(), req.port());
 
-			std::cout << " GET forwarded"
-				<< req.ip() << ":" << req.port()
-				<< "\tResolved to: " << m_successor.ip
-				<< ":" << m_successor.port << '\n';
+			/*m_chord_log.write("GET forwarded: " + req.ip() +
+					":" + std::to_string(req.port()) +
+					"\t Resolved to: " + m_successor.ip +
+					":" + std::to_string(m_successor.port)); */
 		}
 		else
 		{
 			m_primary_socket->write(response_message, ip, port);
 
-			std::cout << " GET from "
-				<< ip << ":" << port
-				<< "\tResolved to: " << m_successor.ip
-				<< ":" << m_successor.port << '\n';
+			/*m_chord_log.write("GET from: " + ip +
+					":" + std::to_string(port)+
+					"\t Resolved to: " + m_successor.ip +
+					":" + std::to_string(m_successor.port)); */
 		}
 
 	}
 	else if (search_hash == m_uid_hash)
 	{
-		std::cerr << " ERROR: Landed on node\n";
+		/*m_chord_log.write("Error: Landed on node (" + ip +
+				":" + std::to_string(port)); */
 	}
 	else if (search_hash.between(m_uid_hash, m_successor.uid_hash))
 	{
-		std::cout << " Search Not found\n";
 		Request response;
 		std::string response_message;
 		response.set_id(req.id());
