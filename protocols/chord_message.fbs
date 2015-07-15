@@ -1,0 +1,19 @@
+// Generated from chord_message.proto
+
+namespace DNS;
+
+enum RequestType : byte {
+  NONE = 0,
+  JOIN = 1,
+  GET = 2,
+  SYNC = 3,
+}
+
+table Request {
+  id:string;
+  type:RequestType;
+  ip:string;
+  port:int;
+  forward:bool;
+}
+

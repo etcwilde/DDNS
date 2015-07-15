@@ -118,6 +118,11 @@ void ChordDNS::request_handler()
 	while (m_primary_socket == NULL) {} //Spin lock
 	while (!m_dead)
 	{
+
+		std::string input;
+		std::string client_ip;
+		unsigned short client_port;
+		m_primary_socket->read(input, client_ip, client_port);
 		if (m_dead) break;
 	}
 }
