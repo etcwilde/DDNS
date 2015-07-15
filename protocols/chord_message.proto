@@ -3,21 +3,17 @@ package DNS;
 message Request
 {
 	required bytes id = 1;
-	optional string ip = 2 [default = ""]; //Original Source IP
-	optional int32 port = 3 [default = 0]; //Original Source Port
+	required RequestType type = 2;
+	optional string ip = 3; //Original Source IP
+	optional int32 port = 4; //Original Source Port
+	optional bool forward = 5 [default = false]; //Forwarded packet
 
 
 	enum RequestType {
-		JOIN = 0;
-		DROP = 1;
+		NONE = 0; // Even though I never set the type to this value
+			  // It seems to use it a lot...
+		JOIN = 1;
 		GET = 2;
-		BAD = 3;
-		SYNC = 4;
+		SYNC = 3;
 	}
-
-	required RequestType type = 4;
-
-
-	optional bool forward = 5 [default = false]; //Forwarded packet
-
 }

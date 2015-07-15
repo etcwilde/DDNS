@@ -19,7 +19,7 @@
 
 int main(int argc, const char* argv[])
 {
-	Log logfile("logs/"+std::to_string(getpid())+"_main.log");
+	//Log logfile("logs/"+std::to_string(getpid())+"_main.log");
 	std::string client_ip;
 	unsigned short client_port;
 	std::string host_name;
@@ -31,8 +31,7 @@ int main(int argc, const char* argv[])
 		std::cerr<< "Usage: "
 			<< argv[0]
 			<< " <My Name> <My Port> [<Host IP address> <Host Port Number>]\n";
-		logfile.write("Incorrect arguments: " + std::to_string(argc)
-				+ " provided, 3 expected, 5 optional");
+		//logfile.write("Incorrect arguments: " + std::to_string(argc) + " provided, 3 expected, 5 optional");
 		return 1;
 	}
 
@@ -46,12 +45,12 @@ int main(int argc, const char* argv[])
 	// We are alone in the world, we just sit here and be quite
 	if (argc == 3)
 	{
-		logfile.write("Instancing new chord ring");
+		//logfile.write("Instancing new chord ring");
 		chord_test.create(host_port);
 	}
 	else // We have the host IP and port number
 	{
-		logfile.write("Joining chord ring " + client_ip);
+		//logfile.write("Joining chord ring " + client_ip);
 		client_ip = std::string(argv[3]);
 		client_port = static_cast<unsigned short>(atoi(argv[4]));
 		chord_test.join(client_ip, client_port, host_port);
@@ -67,7 +66,6 @@ int main(int argc, const char* argv[])
 			chord_test.Dump("logs/dump_"+std::to_string(getpid()));
 			continue;
 		}
-		std::cout << " looking up " << dns_name << " using distributed methods\n";
 		std::string resolved_ip;
 		unsigned short resolved_port;
 		if(chord_test.Lookup(dns_name, resolved_ip, resolved_port) != 0)
