@@ -18,7 +18,10 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "chord_message.pb.h"
+#include <capnp/serialize-packed.h>
+
+#include "chord_message.capnp.h"
+//#include "chord_message.pb.h"
 #include "Socket.hpp"
 #include "logging.hpp"
 #include "Hash.hpp"

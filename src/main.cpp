@@ -11,7 +11,6 @@
 
 #include "Socket.hpp"
 #include "Chord.hpp"
-#include "chord_message.pb.h"
 #include "HashTable.hpp"
 #include "logging.hpp"
 
@@ -25,7 +24,6 @@ int main(int argc, const char* argv[])
 	std::string host_name;
 	unsigned short host_port;
 
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	if (argc != 3 && argc != 5)
 	{
 		std::cerr<< "Usage: "

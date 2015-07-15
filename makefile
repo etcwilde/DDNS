@@ -43,7 +43,7 @@ D_PROT	= protocols/
 
 # Flags
 CFLAGS	= -c -iquote $(D_INC)
-LIBS	= -pthread -lssl -lcrypto -lprotobuf
+LIBS	= -pthread -lssl -lcrypto -lcapnp
 CXFLAGS = $(CFLAGS) -std=c++11
 
 # Generate Object file names
@@ -51,7 +51,8 @@ SRCS	= \
 	  $(wildcard $(D_SRC)*.c) \
 	  $(wildcard $(D_SRC)*.cpp) \
 	  $(wildcard $(D_SRC)*.C) \
-	  $(wildcard $(D_SRC)*.cc)
+	  $(wildcard $(D_SRC)*.cc) \
+	  $(wildcard $(D_SRC)*.c++)
 
 TEST_SRCS	= \
 	  $(wildcard $(D_TEST)*.c) \
@@ -66,7 +67,8 @@ OBJS	= \
 	  $(patsubst $(D_SRC)%.c, $(D_BUILD)%.o, \
 	  $(patsubst $(D_SRC)%.cpp, $(D_BUILD)%.o, \
 	  $(patsubst $(D_SRC)%.C, $(D_BUILD)%.o, \
-	  $(patsubst $(D_SRC)%.cc, $(D_BUILD)%.o, $(SRCS)))))
+	  $(patsubst $(D_SRC)%.cc, $(D_BUILD)%.o, \
+	  $(patsubst $(D_SRC)%.c++, $(D_BUILD)%.o, $(SRCS))))))
 
 TEST_OBJS	= \
 	  $(patsubst $(D_TEST)%.c, $(D_BUILD)%.o, \
@@ -81,17 +83,10 @@ all: $(D_BIN)$(EXEC)
 
 protocols: $(D_SRC)chord_message.capnp.cpp
 
-$(D_SRC)chord_message.capnp.cc: $(D_PROT)chord_message.capnp
-	capnp compile -oc++ $(D_PROT)chord_message.capnp
+ $(D_INC)chord_message.capnp.h $(D_SRC)chord_message.capnp.cpp: $(D_PROT)chord_message.capnp
+	capnp compile -I=$(D_PROT) -oc++ $(D_PROT)chord_message.capnp
+	mv $(D_PROT)chord_message.capnp.h $(D_INC)chord_message.capnp.h
 	mv $(D_PROT)chord_message.capnp.c++ $(D_SRC)chord_message.capnp.cpp
-	mv $(D_PROT)chord_message.capnp.h $(D_SRC)chord_message.capnp.hpp
-
-
-# protocols: $(D_SRC)chord_message.pb.cc
-# 
-# $(D_SRC)chord_message.pb.cc: $(D_PROT)chord_message.proto
-# 	protoc -I=$(D_PROT) --cpp_out=$(D_SRC) $(D_PROT)chord_message.proto
-# 	mv $(D_SRC)chord_message.pb.h $(D_INC)chord_message.pb.h
 
 
 # Optimizations
@@ -169,6 +164,6 @@ $(D_BUILD)%.o : $(D_TEST)%.C
 
 
 # Link Objects
-$(D_BIN)$(EXEC): $(D_BIN) $(D_BUILD) $(LIBSS) $(OBJS)
+$(D_BIN)$(EXEC): $(D_SRC)chord_message.capnp.cpp $(D_BIN) $(D_BUILD) $(LIBSS) $(OBJS) 
 	$(CXX) -o $(D_BIN)$(EXEC)  $(OBJS) $(LIBS)
 
