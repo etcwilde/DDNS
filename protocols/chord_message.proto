@@ -7,7 +7,7 @@ message Request
 	optional string ip = 3; //Original Source IP
 	optional int32 port = 4; //Original Source Port
 	optional bool forward = 5 [default = false]; //Forwarded packet
-
+	optional bool have_pred = 6;
 
 	enum RequestType {
 		JOIN = 0; // Join with the ring
@@ -15,5 +15,62 @@ message Request
 		SYNC = 2; // Synchronize with ring
 		BAD = 3;  // Bad Request -- (not found)
 		RES = 4;  // Response -- (Found)
+		PRED = 5; // Get the name of the predecessor
 	}
 }
+/*
+Requests and Responses:
+Note: All Responses are passed directly to the requesting node, this way only a
+single traversal of the ring is required.
+
+JOIN: Node joining chord ring
+	id: The hash of the hostname for the node joining
+	forward: The packet has been forwarded from at least one other node
+		ip and port fields will be set
+	type: The type of packet will be JOIN
+	ip: The ip address of the sending node, only set if forward is set
+	port: The port address of the sending node, only set if forward is set
+	have_pred: -- ignore --
+
+GET: Requesting a lookup
+	id: The hash of the hostname to be resolved
+	forward: The request has been forwarded from at least one other node
+	type: Type will be GET
+	have_pred: -- ignore --
+
+SYNC: Synchronization request used to hold the ring together
+	id: Id of node requesting synchronization
+		ID of node responding to sync
+
+	forward: Used to determine a response from a request
+		True: Implies that this is a response to a request
+		False: Implies that this is a request
+
+	Note: Sychronization requests will never be forwarded through another
+	node. They are performed by the predecessor, or a node that thinks it
+	is the predecessor.
+
+BAD: Response type for a bad request
+	id: The content will be the id from the request
+	forward: false
+
+RES: Response Type for a resolved request
+	id: The content is the id from the request
+	forward: false
+	ip: The resolved ip of the hostname
+	port: The resolved port number of the hostname
+
+PRED: Requesting the id of the predecessor
+	(Request)
+	id: The id of the requesting node
+	ip: The ip of the requesting node
+	port: The port of the requesting node
+	forward: false
+
+	(Response)
+	id: The id of the predecessor node, if have_pred
+	ip: The ip of the predecessor node, if have_pred
+	port: The port of the predecessor node, if have_pred
+	forward: true
+	have_pred: ( m_predecessor.set ? true : false )
+*/
