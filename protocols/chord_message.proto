@@ -39,14 +39,17 @@ GET: Requesting a lookup
 	have_pred: -- ignore --
 
 SYNC: Synchronization request used to hold the ring together
-	id: Id of node requesting synchronization
-		ID of node responding to sync
+	(Request)
+	id: The id of the node making the request
+	forward: false
+	(Response)
+	id: The id of the actual predecessor node
+	ip: The ip address of the predecessor node
+	port: The port of the predecessor node
+	forward: true
 
-	forward: Used to determine a response from a request
-		True: Implies that this is a response to a request
-		False: Implies that this is a request
 
-	Note: Sychronization requests will never be forwarded through another
+	Note: Synchronization requests will never be forwarded through another
 	node. They are performed by the predecessor, or a node that thinks it
 	is the predecessor.
 
