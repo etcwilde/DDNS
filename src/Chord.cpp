@@ -274,9 +274,20 @@ void ChordDNS::handle_get(const Request& req, const std::string& ip,
 		unsigned short port)
 {
 	Hash search_hash(req.id(), true);
-	if (search_hash == m_successor.uid_hash)
+	if (!m_successor.set)
 	{
-
+		Request response;
+		std::string response_message;
+		response.set_id(req.id());
+		response.set_forward(false);
+		response.set_type(Request::BAD);
+		response.SerializeToString(&response_message);
+		if (req.forward()) m_primary_socket->write(response_message,
+				req.ip(), req.port());
+		else m_primary_socket->write(response_message, ip, port);
+	}
+	else if (search_hash == m_successor.uid_hash)
+	{
 		Request response;
 		std::string response_message;
 		response.set_id(req.id());
@@ -286,26 +297,9 @@ void ChordDNS::handle_get(const Request& req, const std::string& ip,
 		response.set_port(m_successor.port);
 		response.SerializeToString(&response_message);
 
-		if (req.forward())
-		{
-			m_primary_socket->write(response_message,
+		if (req.forward()) m_primary_socket->write(response_message,
 					req.ip(), req.port());
-
-			/*m_chord_log.write("GET forwarded: " + req.ip() +
-					":" + std::to_string(req.port()) +
-					"\t Resolved to: " + m_successor.ip +
-					":" + std::to_string(m_successor.port)); */
-		}
-		else
-		{
-			m_primary_socket->write(response_message, ip, port);
-
-			/*m_chord_log.write("GET from: " + ip +
-					":" + std::to_string(port)+
-					"\t Resolved to: " + m_successor.ip +
-					":" + std::to_string(m_successor.port)); */
-		}
-
+		else m_primary_socket->write(response_message, ip, port);
 	}
 	else if (search_hash == m_uid_hash)
 	{
@@ -320,14 +314,9 @@ void ChordDNS::handle_get(const Request& req, const std::string& ip,
 		response.set_forward(false);
 		response.set_type(Request::BAD);
 		response.SerializeToString(&response_message);
-		if (req.forward())
-		{
-			m_primary_socket->write(response_message,
-					req.ip(), req.port());
-		}
-		else
-			m_primary_socket->write(response_message,
-					ip, port);
+		if (req.forward()) m_primary_socket->write(response_message,
+				req.ip(), req.port());
+		else m_primary_socket->write(response_message, ip, port);
 	}
 	else
 	{
