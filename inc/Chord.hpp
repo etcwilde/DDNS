@@ -102,6 +102,8 @@ namespace DNS
 		void handle_sync(const Request& req, const std::string& ip, unsigned short port);
 		void handle_res(const Request& req, const std::string& ip, unsigned short port);
 		void handle_bad(const Request& req, const std::string& ip, unsigned short port);
+		void handle_pred(const Request& req, const std::string& ip, unsigned short port);
+
 
 	private:
 		void request_handler();
@@ -114,7 +116,7 @@ namespace DNS
 	// Heartbeat stuff
 	protected:
 		virtual void pulse();
-
+		//void stabilize();
 	private:
 		void heartBeat();
 		unsigned int m_resiliancy;

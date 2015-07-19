@@ -99,6 +99,7 @@ void ChordDNS::create(unsigned short port)
 		m_handler_threads.push_back(
 				std::thread(&ChordDNS::request_handler, this));
 	m_primary_socket = new UDPSocket(port);
+	m_predecessor.set = false;
 }
 
 // Join methods
@@ -354,11 +355,76 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 		unsigned short port)
 {
 	// Handle Response
-	if (req.forward() == true) m_successor.missed = false;
+	if (req.forward() == true)
+	{
+		Hash client_hash(req.id(), true);
+		m_successor.missed = false;
+		if (client_hash == m_uid_hash)
+		{
+			std::cout << " I'm in the right place\n";
+		}
+		else
+		{
+			std::cout <<
+				" I'm in the wrong place: \
+				(recv hash) : (Successor hash) "
+					       << client_hash.toString()
+					      << " : "
+					      << m_successor.uid_hash.toString() << '\n';
+
+
+			// Update my successor to the predecessor
+			m_successor.ip = req.ip();
+			m_successor.port = req.port();
+			m_successor.uid_hash = client_hash;
+		}
+	}
 	else // Handle sync request
 	{
 		Request sync_request;
 		std::string sync_message;
+
+		Hash client_hash(req.id(), true);
+
+		// Use sync as stabilizer
+		// in chord algorithm
+		// (notify n')
+		if (!m_predecessor.set ||
+				client_hash.between(m_predecessor.uid_hash,
+					m_uid_hash))
+		{
+			// You are now!
+			std::cout << " You are now my predecessor\n";
+			m_predecessor.set = true;
+			// Necessary?
+			m_predecessor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
+			m_predecessor.heartbeat = CHORD_DEFAULT_HEART_BEAT;
+			// SYNC requests are never forwarded so this is safe
+			m_predecessor.ip = ip;
+			m_predecessor.port = port;
+			m_predecessor.uid_hash = client_hash;
+		}
+		else if (m_predecessor.uid_hash == client_hash)
+		{
+			std::cout << " You're already my predecessor\n";
+		}
+		else
+		{
+			// Sorry!
+			std::cout << " You've got the wrong guy!\n";
+		}
+
+		// TODO:
+		// We may need to check on our predecessor too, just to make
+		// sure they are still alive
+
+		// Build sync request
+		sync_request.set_id(m_predecessor.uid_hash.raw());
+		sync_request.set_type(Request::SYNC);
+		sync_request.set_ip(m_predecessor.ip);
+		sync_request.set_port(m_predecessor.port);
+
+
 		sync_request.set_id(m_uid_hash.raw());
 		sync_request.set_type(Request::SYNC);
 		sync_request.set_port(m_port);
@@ -384,7 +450,18 @@ void ChordDNS::handle_bad(const Request& req, const std::string& ip,
 	m_wait_cv.notify_all();
 }
 
+// Nope, don't really need that
+void ChordDNS::handle_pred(const Request& req, const std::string& ip,
+		unsigned short port)
+{
+	if (m_predecessor.set)
+	{
+
+	}
+}
+
 // Heart Stuff
+
 void ChordDNS::pulse()
 {
 	if (m_successor.set)
