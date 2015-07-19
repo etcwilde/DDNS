@@ -359,20 +359,8 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 	{
 		Hash client_hash(req.id(), true);
 		m_successor.missed = false;
-		if (client_hash == m_uid_hash)
+		if (client_hash != m_uid_hash)
 		{
-			std::cout << " I'm in the right place\n";
-		}
-		else
-		{
-			std::cout <<
-				" I'm in the wrong place: \
-				(recv hash) : (Successor hash) "
-					       << client_hash.toString()
-					      << " : "
-					      << m_successor.uid_hash.toString() << '\n';
-
-
 			// Update my successor to the predecessor
 			m_successor.ip = req.ip();
 			m_successor.port = req.port();
@@ -423,11 +411,6 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 		sync_request.set_type(Request::SYNC);
 		sync_request.set_ip(m_predecessor.ip);
 		sync_request.set_port(m_predecessor.port);
-
-
-		sync_request.set_id(m_uid_hash.raw());
-		sync_request.set_type(Request::SYNC);
-		sync_request.set_port(m_port);
 		sync_request.set_forward(true);
 		sync_request.SerializeToString(&sync_message);
 		m_primary_socket->write(sync_message, ip, port);
