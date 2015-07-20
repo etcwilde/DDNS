@@ -88,6 +88,16 @@ void ChordDNS::Dump(const std::string& dump_name)
 		dump_log.write("Port: " + std::to_string(m_successor.port) + '\n');
 	}
 	else dump_log.write("No successor\n");
+
+	dump_log.write("Predecessor:");
+	if (m_successor.set)
+	{
+		dump_log.write(m_predecessor.uid_hash.toString());
+		dump_log.write("IP: " + m_predecessor.ip);
+		dump_log.write("Port: " + std::to_string(m_predecessor.port) + '\n');
+	}
+	else dump_log.write("No predecessor\n");
+
 }
 
 
