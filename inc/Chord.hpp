@@ -137,6 +137,7 @@ namespace DNS
 		typedef struct
 		{
 			bool set;
+			bool pending;
 			bool missed;
 			unsigned int resiliancy;
 			double heartbeat;
@@ -148,6 +149,7 @@ namespace DNS
 
 		neighbor_t m_successor;
 		neighbor_t m_predecessor;
+		neighbor_t m_predecessor_cached;
 	private: // Extras
 		//Log m_chord_log;
 	};

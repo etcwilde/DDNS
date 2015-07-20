@@ -20,6 +20,7 @@ ChordDNS::ChordDNS(const std::string& uid):
 	m_successor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
 	m_successor.missed = false;
 	m_predecessor.set = false;
+	m_predecessor.pending = false;
 	m_heart = std::thread(&ChordDNS::heartBeat, this);
 }
 
@@ -51,7 +52,6 @@ int ChordDNS::Lookup(const std::string& Name,
 		port = m_successor.port;
 		return 0;
 	}
-
 
 
 	Request get_request;
@@ -90,7 +90,7 @@ void ChordDNS::Dump(const std::string& dump_name)
 	else dump_log.write("No successor\n");
 
 	dump_log.write("Predecessor:");
-	if (m_successor.set)
+	if (m_predecessor.set)
 	{
 		dump_log.write(m_predecessor.uid_hash.toString());
 		dump_log.write("IP: " + m_predecessor.ip);
@@ -360,7 +360,9 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 		m_successor.missed = false;
 		if (client_hash != m_uid_hash)
 		{
+			std::cout << " Setting new successor\n";
 			// Update my successor to the predecessor
+			m_successor.set = true;
 			m_successor.ip = req.ip();
 			m_successor.port = req.port();
 			m_successor.uid_hash = client_hash;
@@ -383,6 +385,7 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 			// You are now!
 			std::cout << " You are now my predecessor\n";
 			m_predecessor.set = true;
+			m_predecessor.pending = false;
 			// Necessary?
 			m_predecessor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
 			m_predecessor.heartbeat = CHORD_DEFAULT_HEART_BEAT;
@@ -393,18 +396,43 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 		}
 		else if (m_predecessor.uid_hash == client_hash)
 		{
-			std::cout << " You're already my predecessor\n";
+			std::cout << "predecessor not pending\n";
+			m_predecessor.pending = false;
 		}
 		else
 		{
 			// Sorry!
 			std::cout << " You've got the wrong guy!\n";
+			// Okay, this is the wrong guy, maybe...
+			// We need to urgently send a request to our
+			// predecessor to see if it is still alive.
+			// If it isn't, let the new node be our predecessor
+			if (m_predecessor.pending)
+			{
+				// Okay, pretty sure that there is an issue
+				// with our predecessor
+				std::cout << " Predecessor appears dead\n";
+				// We replace our predecessor ? Or we could
+				// send a pred request just in case and the
+				// next time they come around, we replace them
+
+				// TODO pred request before replacement
+				memcpy(&m_predecessor_cached, &m_predecessor,
+						sizeof(neighbor_t));
+
+				m_predecessor.uid_hash = client_hash;
+				m_predecessor.ip = ip;
+				m_predecessor.port = port;
+				m_predecessor.set = true;
+				m_predecessor.pending = false;
+				m_predecessor.missed = false;
+			}
+			else
+			{
+				std::cout << " Predecessor is now pending...\n";
+				m_predecessor.pending = true;
+			}
 		}
-
-		// TODO:
-		// We may need to check on our predecessor too, just to make
-		// sure they are still alive
-
 		// Build sync request
 		sync_request.set_id(m_predecessor.uid_hash.raw());
 		sync_request.set_type(Request::SYNC);
@@ -452,7 +480,6 @@ void ChordDNS::pulse()
 		std::string sync_message;
 		sync_request.set_id(m_uid_hash.raw());
 		sync_request.set_type(Request::SYNC);
-		sync_request.set_port(m_port);
 		sync_request.set_forward(false);
 
 		sync_request.SerializeToString(&sync_message);
@@ -465,9 +492,30 @@ void ChordDNS::pulse()
 		{
 			std::cout << " Successor died\n";
 			m_successor.set = false;
+
+			if (m_predecessor.set)
+			{
+				// Send a SYNC request to our predecessor
+				m_primary_socket->write(sync_message,
+						m_predecessor.ip,
+						m_predecessor.port);
+			}
+			else std::cout << " Chord ring failed\n";
 		}
 		else m_successor.resiliancy--;
 		m_successor.missed = true;
+	}
+	else if (m_predecessor.set) // Try to connect to our predecessor
+	{
+		Request sync_request;
+		std::string sync_message;
+		sync_request.set_id(m_uid_hash.raw());
+		sync_request.set_type(Request::SYNC);
+		sync_request.set_forward(false);
+		sync_request.SerializeToString(&sync_message);
+		m_primary_socket->write(sync_message,
+				m_predecessor.ip,
+				m_predecessor.port);
 	}
 }
 
