@@ -42,6 +42,7 @@ SYNC: Synchronization request used to hold the ring together
 	(Request)
 	id: The id of the node making the request
 	forward: false
+
 	(Response)
 	id: The id of the actual predecessor node
 	ip: The ip address of the predecessor node

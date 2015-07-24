@@ -28,7 +28,8 @@
 #include "Hash.hpp"
 
 #define CHORD_DEFAULT_PORT 1994 	// Default connection port if no port supplied
-#define CHORD_DEFAULT_HEART_BEAT 3000 	// Ping every 3 seconds
+//#define CHORD_DEFAULT_HEART_BEAT 3000 	// Ping every 3 seconds
+#define CHORD_DEFAULT_HEART_BEAT 1000	// Ping every half-second
 #define CHORD_DEFAULT_RESILLIANCY 3 	// Three pulse misses and it is dead
 #define CHORD_DEFAULT_HANDLER_THREADS 1
 
@@ -65,7 +66,8 @@ namespace DNS
 		 * <Successor UID_HASH>
 		 * <Successor IP>:<Successor Port>
 		 */
-		void Dump(const std::string& dump_name);
+		void Dump(const std::string& dump_name) const;
+		void d() const;
 	private:
 
 		static inline size_t hashFunction(const Hash& h)

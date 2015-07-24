@@ -61,6 +61,11 @@ int main(int argc, const char* argv[])
 		std::cout << "Lookup: ";
 		std::cin >> dns_name;
 		if (dns_name.compare("exit") == 0) break;
+		else if (dns_name.compare("d") == 0)
+		{
+			chord_test.d();
+			continue;
+		}
 		else if (dns_name.compare("dump") == 0)
 		{
 			chord_test.Dump("logs/dump_"+std::to_string(getpid()));

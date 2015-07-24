@@ -76,7 +76,7 @@ int ChordDNS::Lookup(const std::string& Name,
 	return 0;
 }
 
-void ChordDNS::Dump(const std::string& dump_name)
+void ChordDNS::Dump(const std::string& dump_name) const
 {
 	Log dump_log(dump_name + ".dump");
 	dump_log.write("-----------------------------------------");
@@ -101,6 +101,27 @@ void ChordDNS::Dump(const std::string& dump_name)
 
 }
 
+void ChordDNS::d() const
+{
+	std::cerr << "-----------------------------------------\n"
+		<< m_uid + "::" + m_uid_hash.toString() << '\n'
+		<< "Successor:\n ";
+	if (m_successor.set)
+	{
+		std::cerr << m_successor.uid_hash.toString() << "\n ";
+		std::cerr << m_successor.ip << ":" << m_successor.port << '\n';
+	}
+	else std::cerr << " Not Set\n";
+
+	std::cerr << "Predecessor:\n ";
+	if (m_predecessor.set)
+	{
+		std::cerr << m_predecessor.uid_hash.toString() << "\n ";
+		std::cerr << m_predecessor.ip << ":" << m_predecessor.port << '\n';
+	}
+	else std::cerr << " Not set\n";
+	std::cerr << '\n';
+}
 
 // Network stuff
 void ChordDNS::create(unsigned short port)
@@ -228,6 +249,7 @@ void ChordDNS::handle_join(const Request& req, const std::string& ip,
 				(!req.forward() && ip == m_successor.ip &&
 				 req.port() == m_successor.port))
 		{
+			//std::cout << " You came back from the dead\n";
 		}
 		else
 		{
@@ -313,7 +335,7 @@ void ChordDNS::handle_get(const Request& req, const std::string& ip,
 	}
 	else if (search_hash == m_uid_hash)
 	{
-		std::cout << "Error: Landed on node\n";
+		std::cerr << "Error: Landed on node\n";
 		/*m_chord_log.write("Error: Landed on node (" + ip +
 				":" + std::to_string(port)); */
 	}
@@ -362,19 +384,11 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 		m_successor.missed = false;
 		if (client_hash != m_uid_hash)
 		{
-			//std::cout << " Setting new successor\n";
-			// Update my successor to the predecessor
 			m_successor.set = true;
 			m_successor.ip = req.ip();
 			m_successor.port = req.port();
 			m_successor.uid_hash = client_hash;
-
-			std::cout << "New Successor: " <<
-				m_successor.uid_hash.toString() << '\n' << '\t'
-				<< m_successor.ip << ':' << m_successor.port
-				<< '\n' << '\n';
 		}
-
 	}
 	else // Handle sync request
 	{
@@ -401,10 +415,6 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 			m_predecessor.ip = ip;
 			m_predecessor.port = port;
 			m_predecessor.uid_hash = client_hash;
-			std::cout << "Predecessor: " <<
-				m_predecessor.uid_hash.toString() << '\n' << '\t'
-				<< m_predecessor.ip << ':' << m_predecessor.port
-				<< '\n' << '\n';
 		}
 		else if (!m_successor.set)
 		{
@@ -415,28 +425,17 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 			m_successor.ip = ip;
 			m_successor.port = port;
 			m_successor.uid_hash = client_hash;
-			std::cout << " Fixing Ring: " <<
-				m_successor.uid_hash.toString() << '\n';
 		}
 		else if (m_predecessor.uid_hash == client_hash)
 		{
-			m_predecessor.pending = false;
+			if (m_predecessor.pending)
+				std::cout << " Predecessor not pending...\n";
+		       	m_predecessor.pending = false;
 		}
 		else
 		{
-			// Okay, this is the wrong guy, maybe...
-			// We need to urgently send a request to our
-			// predecessor to see if it is still alive.
-			// If it isn't, let the new node be our predecessor
 			if (m_predecessor.pending)
 			{
-				// Okay, pretty sure that there is an issue
-				// with our predecessor
-				std::cout << " Predecessor appears dead\n";
-				// We replace our predecessor ? Or we could
-				// send a pred request just in case and the
-				// next time they come around, we replace them
-
 				// TODO pred request before replacement
 				m_predecessor.uid_hash = client_hash;
 				m_predecessor.ip = ip;
@@ -444,12 +443,6 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 				m_predecessor.set = true;
 				m_predecessor.pending = false;
 				m_predecessor.missed = false;
-
-			//	std::cout << " New Predecessor:\n"
-			//		<< m_predecessor.uid_hash.toString()
-			//		<< ' '
-			//		<< m_predecessor.ip << ':'
-			//		<< m_predecessor.port << '\n';
 			}
 			else
 			{
@@ -497,6 +490,8 @@ void ChordDNS::handle_pred(const Request& req, const std::string& ip,
 
 void ChordDNS::pulse()
 {
+	// If we have a predecessor, check that they are alive
+
 	if (m_successor.set)
 	{
 		Request sync_request;
@@ -510,32 +505,24 @@ void ChordDNS::pulse()
 				m_successor.port);
 
 		if (m_successor.missed == false)
+		{
 			m_successor.resiliancy = CHORD_DEFAULT_RESILLIANCY;
+			m_successor.heartbeat = CHORD_DEFAULT_HEART_BEAT;
+		}
 		else if (m_successor.resiliancy == 0)
 		{
 
 			std::cout << " Successor died\n";
 			m_successor.set = false;
-			//m_successor.pending = true;
-			if (m_predecessor.set)
-			{
-				// Send a SYNC request to our predecessor
-				m_primary_socket->write(sync_message,
-						m_predecessor.ip,
-						m_predecessor.port);
-			}
-			else std::cout << " Chord ring failed\n";
-
 		}
-		else m_successor.resiliancy--;
+		else
+		{
+			m_successor.resiliancy--;
+		}
 		m_successor.missed = true;
 	}
 	else if (m_predecessor.set) // Try to connect to our predecessor
 	{
-		std::cout << " Requesting reconnect at: "
-			<< m_predecessor.uid_hash.toString() << ' '
-			<< m_predecessor.ip << ':' << m_predecessor.port
-			<< '\n';
 		Request sync_request;
 		std::string sync_message;
 		sync_request.set_id(m_uid_hash.raw());
@@ -553,8 +540,7 @@ void ChordDNS::heartBeat()
 	while (!m_dead)
 	{
 		pulse();
-		if (m_predecessor.pending || !m_predecessor.set ||
-				m_successor.pending) usleep (150);
-		else usleep(m_successor.heartbeat * 1000);
+		if (m_predecessor.pending) usleep(250);
+		usleep(m_successor.heartbeat * (float(m_successor.resiliancy) / float(3)) * 1000);
 	}
 }
