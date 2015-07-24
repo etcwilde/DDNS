@@ -32,6 +32,8 @@
 #define CHORD_DEFAULT_RESILLIANCY 3 	// Three pulse misses and it is dead
 #define CHORD_DEFAULT_HANDLER_THREADS 1
 
+#define CHORD_DEFAULT_TIMEOUT 300	// Wait 300 ms for request to come back in
+
 // We use a heartbeat to determine if the node is still alive. When three
 // pulses are missed, the node is dead and should be removed from the chord
 // ring
@@ -149,7 +151,6 @@ namespace DNS
 
 		neighbor_t m_successor;
 		neighbor_t m_predecessor;
-		neighbor_t m_predecessor_cached;
 	private: // Extras
 		//Log m_chord_log;
 	};
