@@ -8,6 +8,9 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
+#include <chrono>
+#include <cstdlib>
 
 #include "Socket.hpp"
 #include "Chord.hpp"
@@ -15,11 +18,127 @@
 #include "HashTable.hpp"
 #include "logging.hpp"
 
-#define DEFAULT_PORT 8080
+#include <sqlite3.h>
 
+#define START_PORT	1025
+#define NODES 		10001	// Number of nodes in the system
+#define REQUESTS 	25	// Number of random requests made by each node
+
+
+std::string table_create =
+"DROP TABLE IF EXISTS requests;\n"
+"\n"
+"CREATE TABLE requests\n"
+"(\n"
+	"req_id integer primary key autoincrement,\n"
+	"total_nodes, integer,\n"	// All the nodes in the system
+	"nid integer,\n"		// Request Sender
+	"req_nid integer,\n"		// Who is being requested
+	"req_time integer,\n"		// How long it took to make the request
+	"miss integer\n"		// Did the request hit a node, or was it a miss?
+");\n";
+
+#ifdef DEBUG
+int main()
+{
+	char* sqlite_ErrMsg = 0;
+
+	sqlite3* db;
+	int rc = sqlite3_open_v2("results.db", &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
+	if (rc)
+	{
+		std::cerr << "Failed to open database\n";
+		sqlite3_close(db);
+		return 1;
+	}
+
+	std::cout << "Creating Experiment Tables...\n";
+	rc = sqlite3_exec(db, table_create.c_str(), NULL, 0, &sqlite_ErrMsg);
+	if (rc != SQLITE_OK)
+	{
+		std::cout << "sqlerr: " << sqlite_ErrMsg << '\n';
+		sqlite3_free(sqlite_ErrMsg);
+		sqlite3_close(db);
+		return 1;
+	}
+	std::cout << "Tables Created\n";
+
+	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	std::vector<DNS::ChordDNS*> nodes;
+
+	DNS::ChordDNS* current_node = new DNS::ChordDNS(std::to_string(0));
+	current_node->create(START_PORT);
+	nodes.push_back(current_node);
+	for (unsigned int n = 1; n < NODES; ++n)
+	{
+		std::cout << " Creating node: " << n << '\n';
+		current_node = new DNS::ChordDNS(std::to_string(n));
+		current_node->join("127.0.0.1", START_PORT, START_PORT + n);
+		nodes.push_back(current_node);
+		sleep(n / 10); // Give the nodes time to join and stabilize
+		if (n % 10 == 0)
+		{
+			sleep(1);
+
+			for (unsigned int i = 0; i < nodes.size(); ++i)
+			{
+				for (unsigned int j = 0; j < REQUESTS; j++)
+				{
+					// Make request
+					std::string resolved_ip;
+					unsigned short resolved_port;
+					std::string lookup =
+						std::to_string(rand() % nodes.size() + 1);
+
+					auto begin =
+						std::chrono::high_resolution_clock::now();
+					int ret = nodes[i]->Lookup(lookup,
+							resolved_ip,
+							resolved_port);
+
+					auto end =
+						std::chrono::high_resolution_clock::now();
+
+
+					std::string query =
+						"INSERT INTO requests"
+						"(total_nodes, nid, req_nid, req_time, miss) VALUES ("
+						+ std::to_string(nodes.size()) + ", "
+						+ std::to_string(i) + ", "
+						+ lookup + ", "
+						+ std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()) + ", " + std::to_string(ret) + ");";
+
+					if (sqlite3_exec(db,
+							query.c_str(),
+							NULL,
+							NULL,
+							&sqlite_ErrMsg))
+					{
+						std::cerr << "DB ERROR: "
+							<< sqlite_ErrMsg
+							<< '\n';
+						sqlite3_free(sqlite_ErrMsg);
+					}
+
+					std::cout << query << '\n';
+				}
+			}
+		}
+	}
+
+	sqlite3_close(db);
+	std::cout << "Deleting Nodes...\n";
+	for (auto x : nodes) delete x;
+	std::cout << "NodesDeleted\n";
+
+	std::cout << "\n\tHit Return to exit\n";
+	std::string something;
+	std::getline(std::cin, something);
+	return 0;
+}
+#else
 int main(int argc, const char* argv[])
 {
-	//Log logfile("logs/"+std::to_string(getpid())+"_main.log");
 	std::string client_ip;
 	unsigned short client_port;
 	std::string host_name;
@@ -31,7 +150,6 @@ int main(int argc, const char* argv[])
 		std::cerr<< "Usage: "
 			<< argv[0]
 			<< " <My Name> <My Port> [<Host IP address> <Host Port Number>]\n";
-		//logfile.write("Incorrect arguments: " + std::to_string(argc) + " provided, 3 expected, 5 optional");
 		return 1;
 	}
 
@@ -81,9 +199,6 @@ int main(int argc, const char* argv[])
 		std::cout << dns_name << " -> " << resolved_ip << ":" << resolved_port << '\n';
 	}
 
-	/*
-	std::cout << " Hit Return to exit\n";
-	std::string something;
-	std::getline(std::cin, something); */
 	return 0;
 }
+#endif

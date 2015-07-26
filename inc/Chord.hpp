@@ -59,6 +59,8 @@ namespace DNS
 		int Lookup(const std::string& Name,
 				std::string& ip, unsigned short& port);
 
+		const std::string Name() const {return m_uid; }
+
 		/*
 		 * <UID>::<UID_HASH>
 		 *

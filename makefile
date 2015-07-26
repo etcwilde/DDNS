@@ -43,7 +43,7 @@ D_PROT	= protocols/
 
 # Flags
 CFLAGS	= -c -iquote $(D_INC)
-LIBS	= -pthread -lssl -lcrypto -lprotobuf
+LIBS	= -pthread -lssl -lcrypto -lprotobuf -lsqlite3
 CXFLAGS = $(CFLAGS) -std=c++11
 
 # Generate Object file names

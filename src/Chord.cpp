@@ -428,8 +428,8 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 		}
 		else if (m_predecessor.uid_hash == client_hash)
 		{
-			if (m_predecessor.pending)
-				std::cout << " Predecessor not pending...\n";
+			//if (m_predecessor.pending)
+				//std::cout << " Predecessor not pending...\n";
 		       	m_predecessor.pending = false;
 		}
 		else
@@ -446,7 +446,7 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 			}
 			else
 			{
-				std::cout << " Predecessor is now pending...\n";
+				//std::cout << " Predecessor is now pending...\n";
 				m_predecessor.pending = true;
 			}
 		}
@@ -512,7 +512,7 @@ void ChordDNS::pulse()
 		else if (m_successor.resiliancy == 0)
 		{
 
-			std::cout << " Successor died\n";
+			//std::cout << " Successor died\n";
 			m_successor.set = false;
 		}
 		else
