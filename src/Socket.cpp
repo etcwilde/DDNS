@@ -48,10 +48,16 @@ int Socket::write(const std::string& message, const std::string& hostname,
 	client_address.sin_family = AF_INET;
 	std::string client_ip;
 
+	
+
 	// Resolve outgoing hostname -- It may fail
-	if (hostname_to_ip(hostname, client_ip) != 0) return 0;
-	inet_pton(AF_INET, client_ip.c_str(), &(client_address.sin_addr));
+	//if (hostname_to_ip(hostname, client_ip) != 0) return 0;
+
+	inet_pton(AF_INET, hostname.c_str(), &(client_address.sin_addr));
 	client_address.sin_port = htons(client_port);
+
+
+
 	int bytes_sent = sendto(m_socket_fd,
 			message.c_str(), message.size(), 0,
 			(struct sockaddr*)&client_address,
@@ -72,7 +78,7 @@ int Socket::read(std::string& message, std::string& client_ip,
 	if (bytes_read < 0)
 	{
 		std::cerr << "Error: failed to completely read the packet\n";
-		return bytes_read;
+		return -1;
 	}
 	message = std::string((char*)buffer, bytes_read);
 	client_port = ntohs(client_addr.sin_port);

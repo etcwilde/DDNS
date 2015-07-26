@@ -21,9 +21,8 @@
 #include <sqlite3.h>
 
 #define START_PORT	1025
-#define NODES 		10001	// Number of nodes in the system
-#define REQUESTS 	25	// Number of random requests made by each node
-
+#define NODES 		1001	// Number of nodes in the system
+#define REQUESTS 	50	// Number of random requests made by each node
 
 std::string table_create =
 "DROP TABLE IF EXISTS requests;\n"
@@ -31,7 +30,7 @@ std::string table_create =
 "CREATE TABLE requests\n"
 "(\n"
 	"req_id integer primary key autoincrement,\n"
-	"total_nodes, integer,\n"	// All the nodes in the system
+	"total_nodes integer,\n"	// All the nodes in the system
 	"nid integer,\n"		// Request Sender
 	"req_nid integer,\n"		// Who is being requested
 	"req_time integer,\n"		// How long it took to make the request
@@ -71,57 +70,41 @@ int main()
 	nodes.push_back(current_node);
 	for (unsigned int n = 1; n < NODES; ++n)
 	{
-		std::cout << " Creating node: " << n << '\n';
 		current_node = new DNS::ChordDNS(std::to_string(n));
 		current_node->join("127.0.0.1", START_PORT, START_PORT + n);
+		std::cout << "Creating Node: " << n << '\n';
 		nodes.push_back(current_node);
-		sleep(n / 10); // Give the nodes time to join and stabilize
-		if (n % 10 == 0)
+		usleep(150 * n); // Give the nodes time to join and stabilize
+		if ((nodes.size()) % 5 == 0)
 		{
-			sleep(1);
-
-			for (unsigned int i = 0; i < nodes.size(); ++i)
+			for (unsigned int i = 0; i < REQUESTS; ++i)
 			{
-				for (unsigned int j = 0; j < REQUESTS; j++)
+				std::string resolved_ip;
+				unsigned short resolved_port;
+				unsigned int origin = rand() % nodes.size();
+				unsigned int lookup = rand() % (nodes.size() + 2);
+				auto begin = std::chrono::high_resolution_clock::now();
+				int ret = nodes[origin]->Lookup(std::to_string(lookup),
+						resolved_ip, resolved_port);
+				auto end = std::chrono::high_resolution_clock::now();
+				std::string query =
+					"INSERT INTO REQUESTS"
+					"(total_nodes, nid, req_nid, req_time, miss) VALUES("
+					+ std::to_string(nodes.size()) + ", "
+					+ std::to_string(origin) + ", "
+					+ std::to_string(lookup) + ", "
+					+ std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count())  + ", "
+					+ std::to_string(ret) + ");";
+				if (sqlite3_exec(db,
+						query.c_str(),
+						NULL,
+						NULL,
+						&sqlite_ErrMsg))
 				{
-					// Make request
-					std::string resolved_ip;
-					unsigned short resolved_port;
-					std::string lookup =
-						std::to_string(rand() % nodes.size() + 1);
-
-					auto begin =
-						std::chrono::high_resolution_clock::now();
-					int ret = nodes[i]->Lookup(lookup,
-							resolved_ip,
-							resolved_port);
-
-					auto end =
-						std::chrono::high_resolution_clock::now();
-
-
-					std::string query =
-						"INSERT INTO requests"
-						"(total_nodes, nid, req_nid, req_time, miss) VALUES ("
-						+ std::to_string(nodes.size()) + ", "
-						+ std::to_string(i) + ", "
-						+ lookup + ", "
-						+ std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()) + ", " + std::to_string(ret) + ");";
-
-					if (sqlite3_exec(db,
-							query.c_str(),
-							NULL,
-							NULL,
-							&sqlite_ErrMsg))
-					{
-						std::cerr << "DB ERROR: "
-							<< sqlite_ErrMsg
-							<< '\n';
-						sqlite3_free(sqlite_ErrMsg);
-					}
-
-					std::cout << query << '\n';
+					std::cerr << "DB ERROR: " << sqlite_ErrMsg << '\n';
+					sqlite3_free(sqlite_ErrMsg);
 				}
+
 			}
 		}
 	}

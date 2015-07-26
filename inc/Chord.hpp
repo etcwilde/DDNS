@@ -32,6 +32,7 @@
 #define CHORD_DEFAULT_HEART_BEAT 1000	// Ping every half-second
 #define CHORD_DEFAULT_RESILLIANCY 3 	// Three pulse misses and it is dead
 #define CHORD_DEFAULT_HANDLER_THREADS 1
+#define CHORD_DEFAULT_RESENDS 5;
 
 #define CHORD_DEFAULT_TIMEOUT 300	// Wait 300 ms for request to come back in
 
@@ -110,7 +111,6 @@ namespace DNS
 		void handle_bad(const Request& req, const std::string& ip, unsigned short port);
 		void handle_pred(const Request& req, const std::string& ip, unsigned short port);
 
-
 	private:
 		void request_handler();
 		unsigned short m_port;
@@ -128,6 +128,12 @@ namespace DNS
 		unsigned int m_resiliancy;
 		bool m_dead;
 		std::thread m_heart;
+
+
+		bool m_waiting;  // Are we waiting on a hash?
+		Hash m_sent_hash; // The hash we are still waiting on
+		unsigned int m_resend;
+		bool m_resend_flipper; // Every other heart beat, a resend will be sent
 
 	// Networking Stuff
 	private:

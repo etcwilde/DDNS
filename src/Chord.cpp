@@ -54,14 +54,20 @@ int ChordDNS::Lookup(const std::string& Name,
 		return 0;
 	}
 
+	Hash get_hash(Name);
 
 	Request get_request;
 	std::string get_message;
-	get_request.set_id(Hash(Name).raw());
+	get_request.set_id(get_hash.raw());
 	get_request.set_forward(false);
 	get_request.set_type(Request::GET);
 	get_request.SerializeToString(&get_message);
 	m_primary_socket->write(get_message, m_successor.ip, m_successor.port);
+
+	m_waiting = true;
+	m_sent_hash = get_hash;
+	m_resend_flipper = false;
+	m_resend = CHORD_DEFAULT_RESENDS;
 
 	// Now sleep until you are awoken
 	std::unique_lock<std::mutex> lock(m_wait_mux);
@@ -71,6 +77,7 @@ int ChordDNS::Lookup(const std::string& Name,
 
 	m_lookup_ip = "";
 	m_lookup_port = 0;
+
 
 	if (ip == "" || port == 0) return 1;
 	return 0;
@@ -161,7 +168,8 @@ void ChordDNS::request_handler()
 		std::string message;
 		std::string client_ip;
 		unsigned short client_port;
-		m_primary_socket->read(message, client_ip, client_port);
+		if (m_primary_socket->read(message, client_ip, client_port) < 1)
+			continue;
 
 		if (m_dead) break;
 		current_request.ParseFromString(message);
@@ -335,9 +343,24 @@ void ChordDNS::handle_get(const Request& req, const std::string& ip,
 	}
 	else if (search_hash == m_uid_hash)
 	{
-		std::cerr << "Error: Landed on node\n";
-		/*m_chord_log.write("Error: Landed on node (" + ip +
-				":" + std::to_string(port)); */
+		// Send to predecessor if they are set
+		if (m_predecessor.set)
+		{
+			// Forwarded Request
+			Request get_request;
+			std::string get_message;
+			get_request.set_id(req.id());
+			get_request.set_type(Request::GET);
+			if (req.forward()) get_request.set_ip(req.ip());
+			else get_request.set_ip(ip);
+			if (req.forward()) get_request.set_port(req.port());
+			else get_request.set_port(port);
+			get_request.set_forward(true);
+			get_request.SerializeToString(&get_message);
+			m_primary_socket->write(get_message, m_predecessor.ip,
+					m_predecessor.port);
+
+		}
 	}
 	else if (search_hash.between(m_uid_hash, m_successor.uid_hash))
 	{
@@ -405,7 +428,6 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 					m_uid_hash))
 		{
 			// You are now!
-
 			m_predecessor.set = true;
 			m_predecessor.pending = false;
 			// Necessary?
@@ -464,6 +486,8 @@ void ChordDNS::handle_sync(const Request& req, const std::string& ip,
 void ChordDNS::handle_res(const Request& req, const std::string& ip,
 		unsigned short port)
 {
+	m_waiting = false;
+
 	m_lookup_ip = req.ip();
 	m_lookup_port = req.port();
 	m_wait_cv.notify_all();
@@ -480,18 +504,12 @@ void ChordDNS::handle_bad(const Request& req, const std::string& ip,
 void ChordDNS::handle_pred(const Request& req, const std::string& ip,
 		unsigned short port)
 {
-	if (m_predecessor.set)
-	{
-
-	}
 }
 
 // Heart Stuff
 
 void ChordDNS::pulse()
 {
-	// If we have a predecessor, check that they are alive
-
 	if (m_successor.set)
 	{
 		Request sync_request;
@@ -511,15 +529,37 @@ void ChordDNS::pulse()
 		}
 		else if (m_successor.resiliancy == 0)
 		{
-
-			//std::cout << " Successor died\n";
+			std::cout << " Successor died\n";
 			m_successor.set = false;
 		}
-		else
-		{
-			m_successor.resiliancy--;
-		}
+		else m_successor.resiliancy--;
 		m_successor.missed = true;
+
+		// Resend the request if we are still waiting
+		if (m_waiting)
+		{
+			if (m_resend_flipper)
+			{
+				Request get_request;
+				std::string get_message;
+				get_request.set_id(m_sent_hash.raw());
+				get_request.set_forward(false);
+				get_request.set_type(Request::GET);
+				get_request.SerializeToString(&get_message);
+				m_primary_socket->write(get_message,
+						m_successor.ip, m_successor.port);
+				m_resend_flipper = false;
+				m_resend--;
+				if (m_resend == 0)
+				{
+					m_lookup_ip = "";
+					m_lookup_port = 0;
+					m_wait_cv.notify_all();
+				}
+			}
+			else m_resend_flipper = true;
+
+		}
 	}
 	else if (m_predecessor.set) // Try to connect to our predecessor
 	{
@@ -540,7 +580,7 @@ void ChordDNS::heartBeat()
 	while (!m_dead)
 	{
 		pulse();
-		if (m_predecessor.pending) usleep(250);
+		if (m_predecessor.pending || m_successor.pending) usleep(250);
 		usleep(m_successor.heartbeat * (float(m_successor.resiliancy) / float(3)) * 1000);
 	}
 }
