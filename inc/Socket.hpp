@@ -14,12 +14,13 @@
 #include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/un.h>
 #include <time.h>
 #include <unistd.h>
-#include <stdio.h>
 
 #include <string>
 #include <iostream>
@@ -34,16 +35,16 @@ public:
 
 	virtual ~Socket();
 
-	virtual int write(const std::string& message, const std::string& client_ip,
+	virtual int write(const std::string& message,
+			const std::string& client_ip,
 			unsigned short client_port) const;
 
-	virtual int read(std::string& message, std::string& client_ip,
+	virtual int read(std::string& message,
+			std::string& client_ip,
 			unsigned short& client_port) const;
-
 	void shutdown();
-
-
-	static int hostname_to_ip(const std::string& hostname, std::string& ip);
+	static int hostname_to_ip(const std::string& hostname,
+			std::string& ip);
 
 protected:
 	Socket(unsigned short port);
@@ -60,10 +61,7 @@ protected:
 	struct sockaddr_in m_address;
 
 	unsigned int m_socket_fd;
-
 private:
-
-
 };
 
 
@@ -79,46 +77,31 @@ public:
 protected:
 private:
 	virtual void setSocketFd();
-
 };
 
+
+// Stream Socket
 
 /**
- * Somewhat Reliable Datagram Protocol
- *
- * We want it to be able to ensure that a packet makes it
- * We don't care about ordering
- *
- * Not Implemented
- *
- *
+ * Unix Stream Socket
  */
-/*
-class SRDPSocket : public UDPSocket
+
+class UnixSocket
 {
 public:
-	SRDPSocket(std::string host_ip, unsigned short port);
+	UnixSocket(const std::string& socket_name);
+	int Listen(); // Used for server
+	int Connect(const std::string& socket_name); // Used for client
 
-	virtual int write(const std::string& message,
-			const std::string& client_ip,
-			unsigned short client_port) const;
+private:
+	void setSocketFd();
 
-	virtual int read(std::string& message, std::string& client_ip,
-			unsigned short& client_port) const;
-
-protected:
-	typedef struct
-	{
-		unsigned short seqno;
-		unsigned short ackno;
-
-		unsigned short flags; // Don't know what flags yet
-	} header_t;
-
-	// Current status
-	unsigned short m_seqno;
-	unsigned short m_ackno;
+	struct sockaddr_un m_address;
+	bool m_good;
+	bool m_bound;
+	unsigned int m_socket_fd;
 };
-*/
+
+
 
 #endif//SOCKET_HPP

@@ -34,7 +34,7 @@
 //#define HOSTNAME_PATTERN "^hostname[ \t]*?=[ \t]*?([0-9a-zA-Z\\.]*?)[ \t]*?(?:#@.*)?$"
 
 
-#define HOSTNAME_PATTERN "hostname[ \t]*?=[ \t]*?([0-9a-zA-Z\\.]+?)[ \t]*?(?:#.*)?"
+#define HOSTNAME_PATTERN "^hostname[ \t]*?=[ \t]*?([0-9a-zA-Z\\.]+?)[ \t]*?(?:#.*)?$"
 #define HOSTFILE_PATTERN "^hostfile[ \t]*?=[ \t]*?([0-9a-zA-Z\\/.]+?)[ \t]*?(?:#.*)?$"
 #define SOCKET_PATTERN "^socketfile[ \t]*?=[ \t]*?([0-9a-zA-Z\\/.]+?)[ \t]*?(?:#.*)?$"
 #define HOSTS_PATTERN "^((?:[0-9]{1,3}[.]){3}[0-9]{1,3})[ \t]+([a-zA-Z0-9._-]+)(?:[ \t]+([a-zA-Z0-9_-]+)?)?[ \t]?#?.*$"
@@ -112,7 +112,6 @@ int main(int argc, char** argv)
 	std::fstream hostfile(hostfile_name);
 	if (hostfile.is_open())
 	{
-		std::cout << "hostsfile exists\n";
 		while(getline(hostfile, line))
 		{
 			//std::cout << line << '\n';

@@ -40,7 +40,6 @@ void Socket::shutdown()
 	::shutdown(m_socket_fd, SHUT_RDWR);
 }
 
-
 int Socket::write(const std::string& message, const std::string& hostname,
 		unsigned short client_port) const
 {
@@ -129,7 +128,7 @@ void UDPSocket::setSocketFd()
 	m_socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (m_socket_fd < 0)
 	{
-		std::cerr << "Error: Failed to create UDP socket\n";
+		std::cerr << "Error: Failed to create UDP Socket\n";
 		m_good = false;
 	}
 	else m_good = true;
@@ -156,23 +155,47 @@ void UDPSocket::setSocketFd()
 	else m_bound = false;
 }
 
-/* SRDP Socket */
-/*
-SRDPSocket::SRDPSocket(std::string host_ip, unsigned short host_port) :
-	UDPSocket(host_ip, host_port)
-{ }
-
-int SRDPSocket::write(const std::string& message, const std::string& client_ip,
-			unsigned short client_port) const
+/* Unix Socket */
+UnixSocket::UnixSocket(const std::string& name)
 {
+	bzero((char*)&m_address, sizeof(struct sockaddr_in));
+	m_address.sun_family = AF_UNIX;
+	memcpy(m_address.sun_path, name.c_str(), name.size());
+	// Unlink to delete it when it is closed by everyone
+	unlink(name.c_str());
 
+	setSocketFd();
+}
+
+#include <sys/socket.h>
+
+// Make some magic
+void UnixSocket::setSocketFd()
+{
+	m_socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
+	if (m_socket_fd < 0)
+	{
+		m_good = false;
+		std::cerr << "Error: Failed to create Unix Socket\n";
+	} else m_good = true;
+
+	// Bind the socket
+	if (m_good)
+	{
+		int bind_value = bind(m_socket_fd,
+				(struct sockaddr*)&m_address,
+				sizeof(m_address));
+		if (bind_value < 0)
+		{
+			std::cerr << "Error: Failed to bind socket\n";
+			m_bound = false;
+		} else m_bound = true;
+	}
+	else m_bound = false;
 }
 
 
-int SRDPSocket::read(std::string& message, std::string& client_ip,
-			unsigned short& client_port) const
-{
 
-}
-*/
+
+
 
