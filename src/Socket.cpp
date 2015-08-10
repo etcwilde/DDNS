@@ -163,8 +163,73 @@ UnixSocket::UnixSocket(const std::string& name)
 	memcpy(m_address.sun_path, name.c_str(), name.size());
 	// Unlink to delete it when it is closed by everyone
 	unlink(name.c_str());
-
 	setSocketFd();
+}
+
+UnixSocket::~UnixSocket()
+{
+	close(m_socket_fd);
+}
+
+int UnixSocket::Listen(unsigned int backlog)
+{
+	return listen(m_socket_fd, backlog);
+}
+
+
+int UnixSocket::Accept(unsigned int& fd)
+{
+	int ret = accept(m_socket_fd, NULL, NULL);
+	if (ret < 0) return -1;
+	fd = static_cast<unsigned int>(ret);
+	return 0;
+}
+
+int UnixSocket::Connect()
+{
+	return connect(m_socket_fd,
+			reinterpret_cast<const struct sockaddr*>(&m_address),
+			sizeof(m_address));
+}
+
+int UnixSocket::read(unsigned int fd, std::string& message) const
+{
+	unsigned char buffer[BUFFER_SIZE];
+	int total_bytes_read;
+	int bytes_read;
+	for(;;)
+	{
+		memset(buffer, 0, BUFFER_SIZE);
+		bytes_read = ::read(fd, buffer, BUFFER_SIZE);
+		if (bytes_read < 0) return -1;
+		if (bytes_read == 0) return total_bytes_read;
+		total_bytes_read += bytes_read;
+		message += std::string(reinterpret_cast<const char*>(buffer),
+				bytes_read);
+	}
+}
+
+int UnixSocket::write(const std::string& message, unsigned int sock_fd) const
+{
+	if(::write(sock_fd, message.c_str(), message.size()) != message.size())
+	{
+		std::cerr << "Write Error: Partial Write\n";
+		perror("Write Error");
+		return -1;
+	}
+	return message.size();
+
+}
+
+int UnixSocket::write(const std::string& message) const
+{
+	if (::write(m_socket_fd, message.c_str(), message.size()) != message.size())
+	{
+		std::cerr << "Write Error: Partial Write\n";
+		perror("Write Error");
+		return -1;
+	}
+	return message.size();
 }
 
 #include <sys/socket.h>

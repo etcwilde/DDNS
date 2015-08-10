@@ -78,6 +78,8 @@ TEST_OBJS	= \
 # No optimizations
 all: $(D_BIN)$(EXEC)
 
+client: CFLAGS += -DBUILD_CLIENT
+client: $(D_BIN)$(EXEC)
 
 protocols: $(D_SRC)chord_message.pb.cc
 

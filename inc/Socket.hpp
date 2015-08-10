@@ -25,7 +25,8 @@
 #include <string>
 #include <iostream>
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 	1024
+#define BACKLOG		5
 
 
 
@@ -86,13 +87,24 @@ private:
  * Unix Stream Socket
  */
 
+// This is the Listening socket an fd will be set by the accept, keep that
+// around and close it.
 class UnixSocket
 {
 public:
 	UnixSocket(const std::string& socket_name);
-	int Listen(); // Used for server
-	int Connect(const std::string& socket_name); // Used for client
+	~UnixSocket();
 
+	int Listen(unsigned int backlog=BACKLOG); 	// Used for server
+	/**
+	 * @param fd File descriptor to connection socket -- KEEP THIS!
+	 */
+	int Accept(unsigned int& fd);			// Used for server
+	int Connect(); 	// Used for client
+
+	int write(const std::string& message, unsigned int sock_fd) const;
+	int write(const std::string& message) const; // Write to built-in socket
+	int read(unsigned int fd, std::string& message) const;
 private:
 	void setSocketFd();
 

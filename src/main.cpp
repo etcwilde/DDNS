@@ -24,20 +24,66 @@
 #include "chord_message.pb.h"
 #include "logging.hpp"
 
-
-#ifdef BUILD_CLIENT
-#else // BUILD_DAEMON
 #define DEFAULT_CONFIGFILE 	"ddns.conf"
 #define DEFAULT_SOCKETFILE 	"ddns.sock"
 #define DEFAULT_HOSTSFILE	"hosts"
-
-//#define HOSTNAME_PATTERN "^hostname[ \t]*?=[ \t]*?([0-9a-zA-Z\\.]*?)[ \t]*?(?:#@.*)?$"
-
 
 #define HOSTNAME_PATTERN "^hostname[ \t]*?=[ \t]*?([0-9a-zA-Z\\.]+?)[ \t]*?(?:#.*)?$"
 #define HOSTFILE_PATTERN "^hostfile[ \t]*?=[ \t]*?([0-9a-zA-Z\\/.]+?)[ \t]*?(?:#.*)?$"
 #define SOCKET_PATTERN "^socketfile[ \t]*?=[ \t]*?([0-9a-zA-Z\\/.]+?)[ \t]*?(?:#.*)?$"
 #define HOSTS_PATTERN "^((?:[0-9]{1,3}[.]){3}[0-9]{1,3})[ \t]+([a-zA-Z0-9._-]+)(?:[ \t]+([a-zA-Z0-9_-]+)?)?[ \t]?#?.*$"
+
+
+#ifdef BUILD_CLIENT
+
+int main(int argc, char** argv)
+{
+	// Read the configuration file
+	// Connect to the socket
+	// Profit!
+	std::ifstream conf_file(DEFAULT_CONFIGFILE);
+	std::string sockfile_name = DEFAULT_SOCKETFILE;
+	std::string line;
+	std::smatch groups;
+	if(conf_file.is_open())
+	{
+		while(getline(conf_file, line))
+		{
+			if (line.c_str()[0] == '#') continue;
+			if (std::regex_match(line, groups, std::regex(SOCKET_PATTERN)))
+			{
+				sockfile_name = groups[1];
+				break;
+			}
+		}
+		conf_file.close();
+	}
+	else
+	{
+		std::cerr << "Failed to open configuration file\n";
+		return 1;
+	}
+	std::cout << " Socket File " << sockfile_name << '\n';
+
+	int fd, rc;
+	UnixSocket sock(sockfile_name);
+	std::cout << " Connecting...\n";
+	if (sock.Connect() < 0)
+	{
+		std::cerr << " Connection Failed\n";
+		perror("Connection");
+		return -1;
+	}
+	std::cout << " Connected\n";
+	for (std::string line; std::getline(std::cin, line); ) {
+		std::cout << line << std::endl;
+		sock.write(line);
+	}
+
+
+}
+
+#else // BUILD_DAEMON
 
 // Read the configuration file
 // Read hosts file
@@ -146,6 +192,35 @@ int main(int argc, char** argv)
 		std::cout << std::get<0>(x) << ":" << std::get<1>(x) << '\t' <<
 			std::get<2>(x) << '\n';
 	}
+
+	// Build Unix socket
+
+	UnixSocket sock(sockfile_name);
+	sock.Listen(3);
+	unsigned int incoming_fd;
+	std::string message;
+	for(;;)
+	{
+		std::cout << "Waiting for request\n";
+		if(sock.Accept(incoming_fd) < 0)
+		{
+			std::cerr << " Failed to accept socket\n";
+			perror("Socket Accept");
+			continue;
+		}
+		std::cout << "Accepting connection of fd: " << incoming_fd << '\n';
+		if(sock.read(incoming_fd, message) < 0)
+		{
+			std::cerr << " Failed to read from socket\n";
+			continue;
+		}
+
+		std::cout << " message: " << message << '\n';
+		if (message.compare("quit\n") == 0) break;
+		message = "";
+		close(incoming_fd);
+	}
+
 
 	// if IP/Port passed
 	// 	use those to connect maybe
