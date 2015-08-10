@@ -50,7 +50,9 @@ int main(int argc, char** argv)
 		while(getline(conf_file, line))
 		{
 			if (line.c_str()[0] == '#') continue;
-			if (std::regex_match(line, groups, std::regex(SOCKET_PATTERN)))
+			if (std::regex_match(line,
+						groups,
+						std::regex(SOCKET_PATTERN)))
 			{
 				sockfile_name = groups[1];
 				break;
@@ -216,6 +218,8 @@ int main(int argc, char** argv)
 		}
 
 		std::cout << " message: " << message << '\n';
+		// Send message back
+		sock.write("send: " + message, incoming_fd);
 		if (message.compare("quit\n") == 0) break;
 		message = "";
 		close(incoming_fd);
