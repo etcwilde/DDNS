@@ -222,8 +222,9 @@ int main(int argc, char** argv)
 		sock.write("send: " + message, incoming_fd);
 		if (message.compare("quit\n") == 0) break;
 		message = "";
-		close(incoming_fd);
 	}
+
+	close(incoming_fd);
 
 
 	// if IP/Port passed

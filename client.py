@@ -25,34 +25,20 @@ except:
     print("Failed To Connect", file=sys.stderr)
     sys.exit(1)
 
-
-# while True:
-#     i = input()
-#     if not i:
-#         break
-#     print("Sending Data...")
-#     sock.send(i.encode('ascii'))
-#     amount_expected = len(i)
-#     amount_recvd = 0
-#     while amount_recvd < amount_expected:
-#         data = sock.recv(16)
-#         amount_recvd += len(data)
-#         print(data)
-
-
 try:
-
+    while True:
     # Send data
-    message = 'This is the message.  It will be repeated.'
-    sock.send(message.encode('ascii'))
+        message = input("Message: ")
+        if message == "q":
+            break
+        sock.send(message.encode('ascii'))
 
-    amount_received = 0
-    amount_expected = len(message)
+        amount_received = 0
+        amount_expected = len(message)
 
-    while amount_received < amount_expected:
-        data = sock.recv(16)
-        amount_received += len(data)
-        print(data, file=sys.stderr)
-
+        while amount_received < amount_expected:
+            data = sock.recv(16)
+            amount_received += len(data)
+            print(data, file=sys.stderr)
 finally:
     sock.close()

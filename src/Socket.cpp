@@ -197,8 +197,8 @@ int UnixSocket::read(unsigned int fd, std::string& message) const
 	unsigned char buffer[BUFFER_SIZE];
 	int total_bytes_read;
 	int bytes_read;
-	for(;;)
-	{
+	/*for(;;)
+	{ */
 		memset(buffer, 0, BUFFER_SIZE);
 		bytes_read = ::read(fd, buffer, BUFFER_SIZE);
 		if (bytes_read < 0) return -1;
@@ -206,7 +206,9 @@ int UnixSocket::read(unsigned int fd, std::string& message) const
 		total_bytes_read += bytes_read;
 		message += std::string(reinterpret_cast<const char*>(buffer),
 				bytes_read);
-	}
+
+		return bytes_read;
+	//}
 }
 
 int UnixSocket::write(const std::string& message, unsigned int sock_fd) const
@@ -223,6 +225,7 @@ int UnixSocket::write(const std::string& message, unsigned int sock_fd) const
 
 int UnixSocket::write(const std::string& message) const
 {
+
 	if (::write(m_socket_fd, message.c_str(), message.size()) != message.size())
 	{
 		std::cerr << "Write Error: Partial Write\n";
